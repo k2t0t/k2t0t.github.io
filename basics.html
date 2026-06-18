@@ -4,18 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="sources.css">
 </head>
 <body>
-    <h1>Basic Commands</h1>
-    <h2>Learn the fundamental Linux commands for cybersecurity</h2>
-    <p>Most actions will occur inside of a terminal and will require basic knowledge of Linux commands. Here are some of the most important ones:</p>
+    <h1>basic commands</h1>
+    <h2>the fundamentals</h2>
+    <p>if you got here, you probably already know how to use the ls and cd commands:</p>
     <ul>
-        <p>Navigating the Filesystem</p>
-        <li><strong>ls</strong> - List directory contents</li>
-        <li><strong>cd</strong> - Change directory</li>
-        <p>Accessing Information</p>
-        <li><strong>cat</strong> - Display file contents</li>
-        <li><strong>grep</strong> - Search for patterns in files</li>
+        <li><strong>ls</strong> - lists directory contents -> <strong>ls directory_path</strong></li>
+        <ul>
+            <li>directories are basically folders that contain other files and directories and help organize the filesystem</li>
+            <li>you can add a flag like -la to the ls command (<strong>ls -la</strong>) to access more information like hidden files (with a . in front of them) and file permissions</li>
+        </ul>
+        <li><strong>cd</strong> - changes directory -> <strong>cd directory_path</strong></li>
+        <ul>
+            <li>you can use cd .. to go up one directory (go backwards)</li>
+            <li><strong>pwd</strong> shows your current directory</li>
+            <li>it's important to utilize the correct filepath when using cd, either by using the full path (eg. cd /home/user/documents) or a path relative to your current directory (eg. you are in /home/user and you cd to documents).</li>
+        </ul>
+        <p>these commands are essential for navigating the filesystem!</p>
+        <p>just as important are the commands for accessing and modifying information -- here are some basics:</p>
+        <li><strong>cat</strong> - displays file contents -> <strong>cat file.txt</strong></li>
+        <li><strong>nano</strong> - basic text editor for a file -> <strong>nano file.txt</strong> (you can also use <strong>vim</strong>)</li>
+        <li><strong>touch</strong> - creates an empty file -> <strong>touch file.txt</strong></li>
+        <li><strong>mkdir</strong> - creates a directory -> <strong>mkdir directory_name</strong></li>
+        <li><strong>rm</strong> - removes a file or directory -> <strong>rm file.txt</strong> or <strong>rm -r directory_name (note: removes directory contents)</strong></li>
+        <li><strong>cp</strong> - copies a file or directory -> <strong>cp source_path destination_path</strong></li>
+        <li><strong>mv</strong> - moves a file or directory -> <strong>mv source_path destination_path</strong></li>
+        <p>it looks like a lot but it's good to eventually be familiar with these commands!</p>
     </ul>
 
     <a href="index.html">

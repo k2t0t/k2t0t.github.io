@@ -3,36 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>need help on linux?</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>poop</h1>
-    <h2>hi This website is designed to help you learn linux cybersecurity practices. Here are some resources to help you cover the basics!</h2>
-    
-    <a href="basics.html">
-    <button>Basic Commands</button>
-    </a>
+    <p class="eyebrow"><span class="prompt-symbol">frhs@ubuntu:~#</span> cd /home/frhs/ </p>
 
-    <a href="passwords.html">
-    <button>Password Management</button>
-    </a>
+    <h1>need help on linux?</h1>
+    <h2>this website is designed to help you learn some basic linux cybersecurity practices. explore to find some things to get you started!</h2>
 
-    <a href="users.html">
-    <button>User Auditing</button>
-    </a>
-    
-    <a href="ssh.html">
-    <button>SSH Hardening</button>
-    </a>
-    
-    
-    <a href="pas.html">
-    <button>Programs and Services</button>
-    </a>
 
-    <a href="backdoors.html">
-    <button>Backdoor Detection</button>
-    </a>
+
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
+
+    <div class="terminal-input">
+        <span class="prompt-symbol">frhs@ubuntu:/home/frhs/~#</span>
+        <input
+            type="text"
+            id="cmd-input"
+            class="cmd-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="type ls and press enter"
+            aria-label="Terminal command input">
+    </div>
+
+    <!-- if JS is disabled, fall back to a plain link list so the site stays usable -->
+    <noscript>
+        <nav class="modules-locked">
+            <a href="basics.html"><button>Basic Commands</button></a>
+            <a href="passwords.html"><button>Password Management</button></a>
+            <a href="users.html"><button>User Auditing</button></a>
+            <a href="ssh.html"><button>SSH Hardening</button></a>
+            <a href="pas.html"><button>Programs and Services</button></a>
+            <a href="backdoors.html"><button>Backdoor Detection</button></a>
+        </nav>
+    </noscript>
+
+    <script>
+        (function () {
+            var PROMPT = 'frhs@ubuntu:~# ';
+
+            var input = document.getElementById('cmd-input');
+            var log = document.getElementById('terminal-log');
+
+            var dirs = [
+                { name: 'basics',    href: 'basics.html',    desc: 'Essential commands and navigation fundamentals' },
+                { name: 'passwords', href: 'passwords.html', desc: 'Password policy, hashing, and storage' },
+                { name: 'users',     href: 'users.html',     desc: 'Auditing accounts, groups, and permissions' },
+                { name: 'ssh',       href: 'ssh.html',       desc: 'Locking down remote access' },
+                { name: 'services',  href: 'pas.html',       desc: 'Programs and services running on the system' },
+                { name: 'backdoors', href: 'backdoors.html', desc: 'Detecting persistence and hidden access' }
+            ];
+
+            function addLine(text, className) {
+                var p = document.createElement('p');
+                p.className = 'log-line ' + className;
+                p.textContent = text;
+                log.appendChild(p);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            // plain `ls` — just names, wrapped like a real column listing
+            function addPlainListing() {
+                var p = document.createElement('p');
+                p.className = 'log-line log-line--ls';
+                dirs.forEach(function (dir) {
+                    var span = document.createElement('span');
+                    span.className = 'dir-name';
+                    span.textContent = dir.name + '/';
+                    p.appendChild(span);
+                });
+                log.appendChild(p);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            // `ls -l` / `ls -la` — permissions + description per line
+            function addDetailedListing() {
+                addLine('total ' + dirs.length, 'log-line--info');
+                dirs.forEach(function (dir) {
+                    var p = document.createElement('p');
+                    p.className = 'log-line log-line--dir';
+
+                    var perm = document.createElement('span');
+                    perm.className = 'dir-perm';
+                    perm.textContent = 'drwxr-xr-x';
+
+                    var name = document.createElement('span');
+                    name.className = 'dir-name';
+                    name.textContent = dir.name + '/';
+
+                    var desc = document.createElement('span');
+                    desc.className = 'dir-desc';
+                    desc.textContent = dir.desc;
+
+                    p.appendChild(perm);
+                    p.appendChild(name);
+                    p.appendChild(desc);
+                    log.appendChild(p);
+                });
+                log.scrollTop = log.scrollHeight;
+            }
+
+            function findDir(name) {
+                var clean = name.replace(/\/+$/, '').toLowerCase();
+                for (var i = 0; i < dirs.length; i++) {
+                    if (dirs[i].name === clean) return dirs[i];
+                }
+                return null;
+            }
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+
+                var raw = input.value.trim();
+                if (raw === '') return;
+
+                addLine(PROMPT + raw, 'log-line--cmd');
+                input.value = '';
+
+                var parts = raw.split(/\s+/);
+                var cmd = parts[0].toLowerCase();
+                var flags = parts.slice(1);
+
+                // collapse every flag's letters into one string, so -la, -al,
+                // and "-l -a" typed separately all count the same way
+                var flagChars = flags.join('').replace(/-/g, '').toLowerCase();
+                var wantsLong = flagChars.indexOf('l') !== -1;
+                var wantsAll = flagChars.indexOf('a') !== -1;
+
+                if (cmd === 'ls') {
+                    if (wantsLong) {
+                        addDetailedListing();
+                    } else {
+                        addPlainListing();
+                    }
+                    if (wantsLong && wantsAll) {
+                        addLine("# wow ur a pro", 'log-line--easter');
+                    }
+                    input.placeholder = 'try: cd <name>';
+
+                } else if (cmd === 'cd') {
+                    var target = flags.join(' ');
+
+                    if (!target) {
+                        addLine('cd: missing operand', 'log-line--error');
+                    } else {
+                        var dir = findDir(target);
+                        if (dir) {
+                            addLine('entering ' + dir.name + '/ ...', 'log-line--info');
+                            input.disabled = true;
+                            window.setTimeout(function () {
+                                window.location.href = dir.href;
+                            }, 450);
+                        } else {
+                            addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                        }
+                    }
+
+                } else {
+                    addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+                }
+            });
+
+            input.focus();
+        })();
+    </script>
 </body>
 </html>

@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --bg-base:        #10151b;
+  --bg-panel:       #161d25;
+  --bg-row:         #1b232c;
+  --bg-row-hover:   #222c37;
+  --border-hairline:#2a3440;
+  --border-strong:  #3a4754;
+  --text-primary:   #e9e4d6;
+  --text-secondary: #b0bac5;
+  --text-dim:       #7a8a99;
+  --accent-amber:       #e3a043;
+  --accent-amber-bright:#f0b25c;
+  --accent-amber-dim:   #b3812f;
+  --accent-cyan:        #5fb6b6;
+
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-lg: 10px;
+  --radius-md: 6px;
+  --radius-sm: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--bg-base);
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+::selection { background: var(--accent-amber); color: var(--bg-base); }
+
+* { scrollbar-color: var(--border-strong) var(--bg-base); }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--bg-base); }
+*::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; }
+
+a, button { -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 64px auto;
+  max-width: 900px;
+  width: calc(100% - 32px);
+  position: relative;
+  overflow: visible;
+  background: var(--bg-panel);
+  background-image: radial-gradient(ellipse 700px 400px at 50% -10%, rgba(227, 160, 67, 0.08), transparent 60%);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  padding: 56px 56px 48px;
+  box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.6),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-amber), var(--accent-cyan));
+}
+
+h1 {
+  font-family: var(--font-mono);
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+h1::before { content: "# "; color: var(--accent-amber); }
+
+h2, .lede {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 65ch;
+  margin: 0 0 28px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 28px 0 14px;
+}
+
+.section-label::before { content: "# "; color: var(--accent-amber); }
+
+.terminal-input {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  margin: 4px 0 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.terminal-input .prompt-symbol { color: var(--accent-cyan); }
+
+.terminal-input .pwd { color: var(--text-secondary); }
+
+.cmd-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-primary);
+  caret-color: var(--accent-amber);
+  min-width: 100px;
+}
+
+.cmd-input::placeholder { color: var(--text-dim); }
+.cmd-input:disabled { color: var(--accent-amber); opacity: 0.85; }
+
+.terminal-log {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 16
