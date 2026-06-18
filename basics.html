@@ -100,6 +100,12 @@
 
         // cat jumps to new content
         function addLine(text, cls) {
+            /**
+             * This function defines the text in the files
+             * @param {string} text - The text displayed on the line
+             * @param {string} cls - Defines the style used on that line of text
+             * @returns {string} - The text with the style. 
+             */
             var p = document.createElement('p');
             p.className = 'log-line ' + (cls || '');
             p.textContent = text;
@@ -107,7 +113,13 @@
             return p; // caller can use the returned node as a scroll anchor
         }
 
-        function addBlank() { return addLine('', ''); }
+        function addBlank() {
+            /**
+             * This function creates a blank line in the file text
+             * @returns {string} - a line with an empty string and empty style definition
+             */
+            return addLine('', ''); 
+        }
 
         function scrollToEl(el) {
             requestAnimationFrame(function() {
@@ -163,6 +175,12 @@
 
         // ── ls ─────────────────────────────────────────────────────
         function doLs(args) {
+            /**
+             * This function executes the ls command in linux 
+             * This function also includes common flags accompanied with this command
+             * @example 'ls -l' 'ls -a' 'ls -la'
+             * @returns {void}
+             */
             var flagChars = args.join('').replace(/-/g,'').toLowerCase();
             var wantsLong = flagChars.indexOf('l') !== -1;
             var wantsAll  = flagChars.indexOf('a') !== -1;
@@ -174,6 +192,12 @@
             ];
 
             if (wantsLong) {
+                /**
+                 * If the user includes the -l flag in the command
+                 * This will display all the file's permissions, name, and description of the file.
+                 * This will not display hidden files
+                 * @example drwxr-xr-x  basics/  Essential commands and navigation fundamentals
+                 */
                 addLine('total 3', 'log-line--info');
                 files.forEach(function(f) {
                     var p = document.createElement('p');
@@ -195,6 +219,12 @@
                     log.appendChild(p);
                 });
             } else {
+                /**
+                 * If the user includes no flags in the command
+                 * This will not display hidden files
+                 * This will not display all the file's permissions, name, and description of the file.
+                 * @example basics/ ssh/ etc.
+                 */
                 var row = document.createElement('p');
                 row.className = 'log-line log-line--ls';
                 files.forEach(function(f) {
@@ -205,11 +235,17 @@
                 });
                 log.appendChild(row);
             }
-
             if (wantsLong && wantsAll) {
+                /**
+                 * If the user includes both the -l and -a flags in the command
+                 * This will display all the file's permissions, name, and description of the file.
+                 * This will  display hidden files
+                 * @example drwxr-xr-x  basics/  Essential commands and navigation fundamentals
+                 */
                 addLine('# nice — -la shows hidden files and the permissions column!', 'log-line--easter');
             }
 
+            // Updates the guide on the terminal prompt.
             updatePlaceholder();
         }
 
@@ -323,6 +359,11 @@
 
         // ── cat dispatcher ─────────────────────────────────────────
         function doCat(target) {
+            /**
+             * This function displays the target file
+             * @param {string} target - The string following the cat command, the file
+             * @returns {void}
+             */
             var anchor;
             if (target === 'introduction.txt') {
                 anchor = catIntroduction();
