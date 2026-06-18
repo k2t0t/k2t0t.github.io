@@ -1,17 +1,4 @@
-/* =====================================================================
-   Linux Security Practice Lab — theme
-   ---------------------------------------------------------------------
-   CRT-amber terminal palette (VT220 phosphor, not movie-hacker neon
-   green) paired with real Linux vernacular: shell prompt symbols
-   ($ and #), comment syntax, and ls -la style permission strings.
-
-   <body> itself is styled as the centered "terminal card" — no wrapper
-   div required. Just link this file and it works with plain markup
-   like:
-       <h1>Title</h1>
-       <h2>Description</h2>
-       <a href="page.html"><button>Label</button></a>
-   ===================================================================== */
+/* terminal theme */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
@@ -41,9 +28,7 @@
   --radius-sm: 3px;
 }
 
-/* ---------------------------------------------------------------------
-   Reset & page backdrop
-   --------------------------------------------------------------------- */
+/* backdrop */
 * { box-sizing: border-box; }
 
 html {
@@ -61,13 +46,10 @@ html {
 
 a, button { -webkit-tap-highlight-color: transparent; }
 
-/* ---------------------------------------------------------------------
-   The "card" — body itself, so no extra wrapper markup is needed.
-   Centered on the page, boxed, with a status-bar accent on top.
-   --------------------------------------------------------------------- */
+/* the card*/
 body {
   margin: 64px auto;
-  max-width: 760px;
+  max-width: 900px;
   width: calc(100% - 32px);
   position: relative;
   overflow: hidden;
@@ -92,9 +74,7 @@ body::before {
   background: linear-gradient(90deg, var(--accent-amber), var(--accent-cyan));
 }
 
-/* ---------------------------------------------------------------------
-   Hero
-   --------------------------------------------------------------------- */
+/* hero */
 .eyebrow {
   display: flex;
   align-items: center;
@@ -132,9 +112,7 @@ h1 {
 
 h1::before { content: "# "; color: var(--accent-amber); }
 
-/* the lede / description — styles h2 directly so it works with zero
-   HTML changes; .lede if you switch to a <p> (recommended eventually,
-   h2 should be reserved for real subheadings) */
+/* h2 or lede */
 h2, .lede {
   font-family: var(--font-sans);
   font-weight: 400;
@@ -157,10 +135,7 @@ h2, .lede {
 
 .section-label::before { content: "# "; color: var(--accent-amber); }
 
-/* ---------------------------------------------------------------------
-   Command gate — type `ls` to reveal the module list. See index.html
-   for the input/script markup this pairs with.
-   --------------------------------------------------------------------- */
+/* command gate */
 .terminal-input {
   display: flex;
   align-items: center;
@@ -231,11 +206,7 @@ h2, .lede {
 
 .modules-locked { margin-top: 4px; }
 
-/* ---------------------------------------------------------------------
-   Your current markup: <a href="..."><button>Label</button></a>
-   These rules are NOT scoped to any wrapper class, so they apply no
-   matter how your HTML is structured.
-   --------------------------------------------------------------------- */
+/* hi */
 body > a,
 .modules-locked > a {
   display: block;
@@ -267,21 +238,6 @@ button:hover, button:focus-visible {
 
 button:focus-visible { outline: 2px solid var(--accent-amber); outline-offset: 2px; }
 
-/* ---------------------------------------------------------------------
-   Optional upgrade: ls -la style nav rows. Use this structure instead
-   of <a><button>...</button></a> if you want permission-string +
-   description rows. Entirely optional — the plain version above
-   already looks good on its own.
-
-   <nav class="modules">
-     <a class="module" href="basics.html">
-       <span class="module__perm">drwxr-xr-x</span>
-       <span class="module__name">basics/</span>
-       <span class="module__desc">Essential commands</span>
-       <span class="module__arrow">&rarr;</span>
-     </a>
-   </nav>
-   --------------------------------------------------------------------- */
 .modules { display: flex; flex-direction: column; gap: 10px; }
 
 .module {
@@ -326,9 +282,7 @@ button:focus-visible { outline: 2px solid var(--accent-amber); outline-offset: 2
   .module__perm { display: none; }
 }
 
-/* ---------------------------------------------------------------------
-   General content — for subpages with prose, code samples, lists, tables
-   --------------------------------------------------------------------- */
+/* General content — for subpages with prose, code samples, lists, tables */
 p { color: var(--text-secondary); }
 
 :is(h3, h4) { font-family: var(--font-mono); color: var(--text-primary); margin-top: 32px; }
@@ -373,7 +327,7 @@ td code { color: var(--accent-amber); }
 ul, ol { color: var(--text-secondary); padding-left: 1.3em; }
 li { margin-bottom: 6px; }
 
-/* small reusable link-button, e.g. a "back to home" link on subpages */
+/* small reusable link-button (not in use)*/
 .btn {
   display: inline-flex;
   align-items: center;
@@ -392,17 +346,11 @@ li { margin-bottom: 6px; }
 }
 .btn:hover { background: rgba(227, 160, 67, 0.1); border-color: var(--accent-amber); }
 
-/* ---------------------------------------------------------------------
-   Responsive
-   --------------------------------------------------------------------- */
 @media (max-width: 640px) {
   body { margin: 32px auto; padding: 36px 24px 32px; }
   h2, .lede { font-size: 0.97rem; }
 }
 
-/* ---------------------------------------------------------------------
-   Accessibility: respect reduced-motion preference
-   --------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .cursor { animation: none; opacity: 1; }

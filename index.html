@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <p class="eyebrow"><span class="prompt-symbol">frhs@ubuntu:~#</span> cd /home/frhs/ </p>
+    <p class="eyebrow"><span class="prompt-symbol">frhs@ubuntu:~#</span> cat /etc/motd </p>
 
     <h1>need help on linux?</h1>
     <h2>this website is designed to help you learn some basic linux cybersecurity practices. explore to find some things to get you started!</h2>
@@ -17,7 +17,7 @@
     <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
 
     <div class="terminal-input">
-        <span class="prompt-symbol">frhs@ubuntu:/home/frhs/~#</span>
+        <span class="prompt-symbol">frhs@ubuntu:~#</span>
         <input
             type="text"
             id="cmd-input"
@@ -114,6 +114,32 @@
                 return null;
             }
 
+            var DIR_NAMES = dirs.map(function(d){ return d.name; });
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    var val   = input.value;
+                    var parts = val.split(/\s+/);
+                    var cmd   = parts[0].toLowerCase();
+                    var partial = parts.slice(1).join('');
+
+                    if (parts.length === 1 && !val.endsWith(' ')) {
+                        var cmds = ['ls', 'cd'];
+                        var m = cmds.filter(function(c){ return c.startsWith(cmd); });
+                        if (m.length === 1) input.value = m[0] + ' ';
+                    } else if (cmd === 'cd') {
+                        var m = DIR_NAMES.filter(function(d){ return d.startsWith(partial); });
+                        if (m.length === 1) input.value = 'cd ' + m[0];
+                    } else if (cmd === 'ls') {
+                        var flags = ['-l', '-la'];
+                        var idx = flags.indexOf(partial);
+                        input.value = 'ls ' + flags[(idx + 1) % flags.length];
+                    }
+                    return;
+                }
+            });
+
             input.addEventListener('keydown', function (e) {
                 if (e.key !== 'Enter') return;
 
@@ -140,9 +166,9 @@
                         addPlainListing();
                     }
                     if (wantsLong && wantsAll) {
-                        addLine("# wow ur a pro", 'log-line--easter');
+                        addLine("# flag{s3cr3t}", 'log-line--easter');
                     }
-                    input.placeholder = 'try: cd <one of the orange things (directories)>';
+                    input.placeholder = 'try: cd basics';
 
                 } else if (cmd === 'cd') {
                     var target = flags.join(' ');

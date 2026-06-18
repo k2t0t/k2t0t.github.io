@@ -3,39 +3,427 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="sources.css">
+    <title>basics/ — need help on linux?</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .breadcrumb {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            margin: 0 0 20px;
+        }
+        .breadcrumb .path { color: var(--accent-cyan); }
+
+        .log-line--heading {
+            color: var(--accent-amber-bright);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+        .log-line--body        { color: var(--text-secondary); padding-left: 2px; }
+        .log-line--indent      { color: var(--text-secondary); padding-left: 20px; }
+        .log-line--cmd-example { color: var(--accent-amber); padding-left: 20px; }
+        .log-line--divider     { color: var(--border-strong); letter-spacing: 2px; }
+
+        /* no max-height or overflow on the log — let the page scroll naturally */
+        .terminal-log { margin-bottom: 12px; }
+
+        .file-unread { color: var(--text-primary); }
+        .file-read   { color: var(--text-dim); }
+    </style>
 </head>
 <body>
-    <h1>basic commands</h1>
-    <h2>the fundamentals</h2>
-    <p>if you got here, you probably already know how to use the ls and cd commands:</p>
-    <ul>
-        <li><strong>ls</strong> - lists directory contents -> <strong>ls directory_path</strong></li>
-        <ul>
-            <li>directories are basically folders that contain other files and directories and help organize the filesystem</li>
-            <li>you can add a flag like -la to the ls command (<strong>ls -la</strong>) to access more information like hidden files (with a . in front of them) and file permissions</li>
-        </ul>
-        <li><strong>cd</strong> - changes directory -> <strong>cd directory_path</strong></li>
-        <ul>
-            <li>you can use cd .. to go up one directory (go backwards)</li>
-            <li><strong>pwd</strong> shows your current directory</li>
-            <li>it's important to utilize the correct filepath when using cd, either by using the full path (eg. cd /home/user/documents) or a path relative to your current directory (eg. you are in /home/user and you cd to documents).</li>
-        </ul>
-        <p>these commands are essential for navigating the filesystem!</p>
-        <p>just as important are the commands for accessing and modifying information -- here are some basics:</p>
-        <li><strong>cat</strong> - displays file contents -> <strong>cat file.txt</strong></li>
-        <li><strong>nano</strong> - basic text editor for a file -> <strong>nano file.txt</strong> (you can also use <strong>vim</strong>)</li>
-        <li><strong>touch</strong> - creates an empty file -> <strong>touch file.txt</strong></li>
-        <li><strong>mkdir</strong> - creates a directory -> <strong>mkdir directory_name</strong></li>
-        <li><strong>rm</strong> - removes a file or directory -> <strong>rm file.txt</strong> or <strong>rm -r directory_name (note: removes directory contents)</strong></li>
-        <li><strong>cp</strong> - copies a file or directory -> <strong>cp source_path destination_path</strong></li>
-        <li><strong>mv</strong> - moves a file or directory -> <strong>mv source_path destination_path</strong></li>
-        <p>it looks like a lot but it's good to eventually be familiar with these commands!</p>
-    </ul>
+    <p class="eyebrow">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/basics#</span>
+    </p>
 
-    <a href="index.html">
-    <button>Return to Homepage</button>
-    </a>
+    <h1>welcome to the basics</h1>
+    <h2>introduction to linux navigation and file operations</h2>
+
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
+
+    <div class="terminal-input" id="input-row">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/basics#</span>
+        <input
+            type="text"
+            id="cmd-input"
+            class="cmd-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="try: ls"
+            aria-label="Terminal command input">
+    </div>
+
+    <div class="terminal-input" id="nav-hint" style="display:none">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/basics#</span>
+        <input
+            type="text"
+            id="nav-input"
+            class="cmd-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="cd .. to go back"
+            aria-label="Navigation input">
+    </div>
+
+    <noscript>
+        <p>Enable JavaScript to use the interactive terminal.</p>
+        <a href="index.html"><button>Return to Homepage</button></a>
+    </noscript>
+
+    <script>
+    (function () {
+        var PROMPT = 'frhs@ubuntu:~/home/basics# ';
+
+        var input    = document.getElementById('cmd-input');
+        var log      = document.getElementById('terminal-log');
+        var hint     = document.getElementById('nav-hint');
+        var inputRow = document.getElementById('input-row');
+
+        var read = {
+            'introduction.txt': false,
+            'navigation.txt':   false,
+            'fileops.txt':      false
+        };
+
+        var FILES     = Object.keys(read);
+        var COMMANDS  = ['ls', 'cat', 'cd', 'pwd'];
+        var CD_MAIN   = ['..', '~', '/home'];
+        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../ssh', '../services', '../backdoors'];
+
+        // ── helpers ────────────────────────────────────────────────
+
+        // addLine does NOT auto-scroll — scroll is handled explicitly
+        // per-command so cat jumps to the top of new content instead of
+        // the bottom.
+        function addLine(text, cls) {
+            var p = document.createElement('p');
+            p.className = 'log-line ' + (cls || '');
+            p.textContent = text;
+            log.appendChild(p);
+            return p; // caller can use the returned node as a scroll anchor
+        }
+
+        function addBlank() { return addLine('', ''); }
+
+        function scrollToEl(el) {
+            requestAnimationFrame(function() {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        function updatePlaceholder() {
+            var unread = FILES.filter(function(f){ return !read[f]; });
+            input.placeholder = unread.length === 0
+                ? 'all files read! cd .. to go back'
+                : 'try: cat ' + unread[0];
+        }
+
+        // ── tab completion ─────────────────────────────────────────
+        function tabComplete(inputEl, availableFiles, availableCd) {
+            var val   = inputEl.value;
+            var parts = val.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+
+            if (parts.length === 1 && !val.endsWith(' ')) {
+                var m = COMMANDS.filter(function(c){ return c.startsWith(cmd); });
+                if (m.length === 1) inputEl.value = m[0] + ' ';
+                return;
+            }
+
+            var partial = parts.slice(1).join(' ');
+
+            if (cmd === 'cat') {
+                var m = availableFiles.filter(function(f){ return f.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cat ' + m[0];
+            } else if (cmd === 'cd') {
+                var m = availableCd.filter(function(d){ return d.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cd ' + m[0];
+            } else if (cmd === 'ls') {
+                var flags = ['-l', '-la'];
+                var idx = flags.indexOf(partial);
+                inputEl.value = 'ls ' + flags[(idx + 1) % flags.length];
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                tabComplete(input, FILES, CD_MAIN);
+            }
+        });
+
+        // ── ls ─────────────────────────────────────────────────────
+        function doLs(args) {
+            var flagChars = args.join('').replace(/-/g,'').toLowerCase();
+            var wantsLong = flagChars.indexOf('l') !== -1;
+            var wantsAll  = flagChars.indexOf('a') !== -1;
+
+            var files = [
+                { name: 'introduction.txt', desc: 'an introduction to linux navigation and file operations' },
+                { name: 'navigation.txt',   desc: 'ls, cd, pwd — filesystem navigation' },
+                { name: 'fileops.txt',      desc: 'cat, nano, touch, mkdir, rm, cp, mv — file operations' }
+            ];
+
+            if (wantsLong) {
+                addLine('total 3', 'log-line--info');
+                files.forEach(function(f) {
+                    var p = document.createElement('p');
+                    p.className = 'log-line log-line--dir';
+
+                    var perm = document.createElement('span');
+                    perm.className = 'dir-perm';
+                    perm.textContent = '-rw-r--r--';
+
+                    var name = document.createElement('span');
+                    name.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    name.textContent = f.name;
+
+                    var desc = document.createElement('span');
+                    desc.className = 'dir-desc';
+                    desc.textContent = f.desc;
+
+                    p.appendChild(perm); p.appendChild(name); p.appendChild(desc);
+                    log.appendChild(p);
+                });
+            } else {
+                var row = document.createElement('p');
+                row.className = 'log-line log-line--ls';
+                files.forEach(function(f) {
+                    var span = document.createElement('span');
+                    span.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    span.textContent = f.name;
+                    row.appendChild(span);
+                });
+                log.appendChild(row);
+            }
+
+            if (wantsLong && wantsAll) {
+                addLine('# nice — -la shows hidden files and the permissions column!', 'log-line--easter');
+            }
+
+            updatePlaceholder();
+        }
+
+        // ── cat functions — each returns its anchor element ────────
+
+        function catIntroduction() {
+            addBlank();
+            var anchor = addLine('─── introduction.txt ─────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('THE BEGINNING', 'log-line--heading');
+            addBlank();
+            addLine('most interactions will occur within a terminal, which is completely text-based.', 'log-line--body');
+            addLine('inside the terminal, you will be navigating a linux filesystem, organized into', 'log-line--body');
+            addLine('directories (folders) and files within them.', 'log-line--body');
+            addBlank();
+            addLine('therefore, you will need to learn some basic commands to navigate the filesystem', 'log-line--body');
+            addLine('and manipulate files.', 'log-line--body');
+            addBlank();
+            addLine('if you are reading this, you have already used the ls, cd, and cat commands!', 'log-line--body');
+            addLine('try reading the other files in this directory to learn more.', 'log-line--body');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catNavigation() {
+            addBlank();
+            var anchor = addLine('─── navigation.txt ───────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('FILESYSTEM NAVIGATION', 'log-line--heading');
+            addLine('these commands will help you move around the filesystem!', 'log-line--body');
+            addBlank();
+            addLine('ls  — lists directory contents (files, other directories)', 'log-line--body');
+            addLine('$ ls                      # list current directory', 'log-line--cmd-example');
+            addLine('$ ls directory_path       # list a specified directory', 'log-line--cmd-example');
+            addLine('$ ls -la                  # more information and HIDDEN files', 'log-line--cmd-example');
+            addLine('  hidden files start with a dot, eg. .bashrc', 'log-line--indent');
+            addLine('  permissions look like: -rwxr-xr-x (more on this later!)', 'log-line--indent');
+            addBlank();
+            addLine('cd  — change directory', 'log-line--body');
+            addLine('$ cd directory_path       # go to a directory', 'log-line--cmd-example');
+            addLine('$ cd ..                   # go up one level (backwards)', 'log-line--cmd-example');
+            addLine('$ cd ~                    # go to your home directory', 'log-line--cmd-example');
+            addBlank();
+            addLine('  a path shows the location of a file or directory.', 'log-line--indent');
+            addLine('  example full path:  /home/user/documents', 'log-line--indent');
+            addLine('  in this example, documents is inside user, which is inside home.', 'log-line--indent');
+            addLine('  if you are already in /home/user, you can just type: cd documents', 'log-line--indent');
+            addBlank();
+            addLine('pwd — print working directory', 'log-line--body');
+            addLine('$ pwd                     # shows your current location', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catFileops() {
+            addBlank();
+            var anchor = addLine('─── fileops.txt ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('FILE OPERATIONS', 'log-line--heading');
+            addBlank();
+            addLine('cat  — display file contents', 'log-line--body');
+            addLine('$ cat file.txt', 'log-line--cmd-example');
+            addBlank();
+            addLine('nano — basic text editor  (vim is another option)', 'log-line--body');
+            addLine('$ nano file.txt', 'log-line--cmd-example');
+            addLine('  ctrl+o to save, ctrl+x to exit', 'log-line--indent');
+            addBlank();
+            addLine('touch — create an empty file', 'log-line--body');
+            addLine('$ touch file.txt', 'log-line--cmd-example');
+            addBlank();
+            addLine('mkdir — create a directory', 'log-line--body');
+            addLine('$ mkdir directory_name', 'log-line--cmd-example');
+            addLine('$ mkdir -p a/b/c          # create nested directories', 'log-line--cmd-example');
+            addBlank();
+            addLine('rm  — remove a file or directory', 'log-line--body');
+            addLine('$ rm file.txt             # delete a file', 'log-line--cmd-example');
+            addLine('$ rm -r directory_name    # delete a directory and its contents', 'log-line--cmd-example');
+            addLine('  warning: rm is permanent, there is no trash!', 'log-line--indent');
+            addBlank();
+            addLine('cp  — copy a file or directory', 'log-line--body');
+            addLine('$ cp source destination', 'log-line--cmd-example');
+            addLine('$ cp -r source_dir dest_dir', 'log-line--cmd-example');
+            addBlank();
+            addLine('mv  — move or rename a file', 'log-line--body');
+            addLine('$ mv source destination   # move', 'log-line--cmd-example');
+            addLine('$ mv old.txt new.txt      # rename', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        // ── cat dispatcher ─────────────────────────────────────────
+        function doCat(target) {
+            var anchor;
+            if (target === 'introduction.txt') {
+                anchor = catIntroduction();
+                read['introduction.txt'] = true;
+            } else if (target === 'navigation.txt') {
+                anchor = catNavigation();
+                read['navigation.txt'] = true;
+            } else if (target === 'fileops.txt') {
+                anchor = catFileops();
+                read['fileops.txt'] = true;
+            } else {
+                addLine('cat: ' + target + ': No such file or directory', 'log-line--error');
+                return;
+            }
+
+            // scroll is handled by the parent input handler via anchorIndex
+            updatePlaceholder();
+
+            if (FILES.every(function(f){ return read[f]; })) {
+                inputRow.style.display = 'none';
+                hint.style.display = 'flex';
+                document.getElementById('nav-input').focus();
+            }
+        }
+
+        // ── main input handler ─────────────────────────────────────
+        input.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            var raw = input.value.trim();
+            if (raw === '') return;
+
+            addLine(PROMPT + raw, 'log-line--cmd');
+            input.value = '';
+
+            // snapshot child count before any output is added — whatever
+            // lands at this index is the first new line, and we scroll to it
+            var anchorIndex = log.children.length;
+
+            var parts = raw.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+            var args  = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'cat') {
+                if (!args[0]) {
+                    addLine('cat: missing operand', 'log-line--error');
+                } else {
+                    doCat(args[0].toLowerCase());
+                }
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                if (!target || target === '..' || target === '~' || target === '/home') {
+                    window.location.href = 'index.html';
+                } else {
+                    addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                }
+            } else if (cmd === 'pwd') {
+                addLine('/home/basics', 'log-line--info');
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        });
+
+        // ── nav input ──────────────────────────────────────────────
+        var navInput = document.getElementById('nav-input');
+
+        navInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                tabComplete(navInput, FILES, CD_NAV);
+                return;
+            }
+            if (e.key !== 'Enter') return;
+            var raw = navInput.value.trim();
+            if (raw === '') return;
+
+            addLine(PROMPT + raw, 'log-line--cmd');
+            navInput.value = '';
+
+            var anchorIndex = log.children.length;
+
+            var parts = raw.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+            var args  = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'pwd') {
+                addLine('/home/basics', 'log-line--info');
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                var routes = {
+                    '..':           'index.html',
+                    '~':            'index.html',
+                    '/home':        'index.html',
+                    '../passwords': 'passwords.html',
+                    '../users':     'users.html',
+                    '../ssh':       'ssh.html',
+                    '../services':  'pas.html',
+                    '../backdoors': 'backdoors.html'
+                };
+                if (routes[target]) {
+                    addLine('leaving basics/ ...', 'log-line--info');
+                    navInput.disabled = true;
+                    setTimeout(function(){ window.location.href = routes[target]; }, 400);
+                } else {
+                    addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                }
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        });
+
+        input.focus();
+    })();
+    </script>
 </body>
 </html>
