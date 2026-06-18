@@ -65,7 +65,7 @@
                 log.scrollTop = log.scrollHeight;
             }
 
-            // plain `ls` — just names, wrapped like a real column listing
+            // ls plain
             function addPlainListing() {
                 var p = document.createElement('p');
                 p.className = 'log-line log-line--ls';
@@ -79,7 +79,7 @@
                 log.scrollTop = log.scrollHeight;
             }
 
-            // `ls -l` / `ls -la` — permissions + description per line
+            // `ls -l` / `ls -la` — permissions + description
             function addDetailedListing() {
                 addLine('total ' + dirs.length, 'log-line--info');
                 dirs.forEach(function (dir) {
@@ -153,8 +153,8 @@
                 var cmd = parts[0].toLowerCase();
                 var flags = parts.slice(1);
 
-                // collapse every flag's letters into one string, so -la, -al,
-                // and "-l -a" typed separately all count the same way
+                // collapse every flag's letters into one string, so -la, -al, etc. all work
+        
                 var flagChars = flags.join('').replace(/-/g, '').toLowerCase();
                 var wantsLong = flagChars.indexOf('l') !== -1;
                 var wantsAll = flagChars.indexOf('a') !== -1;

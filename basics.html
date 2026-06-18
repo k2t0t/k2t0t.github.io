@@ -25,7 +25,7 @@
         .log-line--cmd-example { color: var(--accent-amber); padding-left: 20px; }
         .log-line--divider     { color: var(--border-strong); letter-spacing: 2px; }
 
-        /* no max-height or overflow on the log — let the page scroll naturally */
+        /* natural scroll */
         .terminal-log { margin-bottom: 12px; }
 
         .file-unread { color: var(--text-primary); }
@@ -95,9 +95,7 @@
 
         // ── helpers ────────────────────────────────────────────────
 
-        // addLine does NOT auto-scroll — scroll is handled explicitly
-        // per-command so cat jumps to the top of new content instead of
-        // the bottom.
+        // cat jumps to new content
         function addLine(text, cls) {
             var p = document.createElement('p');
             p.className = 'log-line ' + (cls || '');
