@@ -75,6 +75,9 @@
 
     <script>
     (function () {
+        /**
+         * This function creates the pseudo-terminal function on the page. 
+         */
         var PROMPT = 'frhs@ubuntu:~/home/basics# ';
 
         var input    = document.getElementById('cmd-input');
@@ -113,6 +116,11 @@
         }
 
         function updatePlaceholder() {
+            /**
+             * This function checks whether all the files in this 'directory' is read.
+             * Will change it to $ cd .. if all files are read.
+             * @returns {void}
+             */
             var unread = FILES.filter(function(f){ return !read[f]; });
             input.placeholder = unread.length === 0
                 ? 'all files read! cd .. to go back'
@@ -208,20 +216,25 @@
         // ── cat functions — each returns its anchor element ────────
 
         function catIntroduction() {
+            /**
+             * The contents of the introduction.txt file
+             * This file contains some basic linux commands that users can use to manipulate files
+             * @returns {string} introduction.txt
+            */
             addBlank();
             var anchor = addLine('─── introduction.txt ─────────────────────────────────', 'log-line--divider');
             addBlank();
             addLine('THE BEGINNING', 'log-line--heading');
             addBlank();
-            addLine('most interactions will occur within a terminal, which is completely text-based.', 'log-line--body');
-            addLine('inside the terminal, you will be navigating a linux filesystem, organized into', 'log-line--body');
-            addLine('directories (folders) and files within them.', 'log-line--body');
+            addLine('Most interactions will occur within a terminal, which is completely text-based.', 'log-line--body');
+            addLine('Inside the terminal, you will be navigating a linux filesystem, organized into', 'log-line--body');
+            addLine('Directories (folders) and files within them.', 'log-line--body');
             addBlank();
-            addLine('therefore, you will need to learn some basic commands to navigate the filesystem', 'log-line--body');
+            addLine('Therefore, you will need to learn some basic commands to navigate the filesystem', 'log-line--body');
             addLine('and manipulate files.', 'log-line--body');
             addBlank();
-            addLine('if you are reading this, you have already used the ls, cd, and cat commands!', 'log-line--body');
-            addLine('try reading the other files in this directory to learn more.', 'log-line--body');
+            addLine('If you are reading this, you have already used the ls, cd, and cat commands!', 'log-line--body');
+            addLine('Try reading the other files in this directory to learn more.', 'log-line--body');
             addBlank();
             addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
             addBlank();
@@ -229,11 +242,16 @@
         }
 
         function catNavigation() {
+            /**
+             * The contents of the navigation.txt file
+             * This file contains some basic linux commands that users can use to navigate files.
+             * @returns {string} navigation.txt
+            */
             addBlank();
             var anchor = addLine('─── navigation.txt ───────────────────────────────────', 'log-line--divider');
             addBlank();
             addLine('FILESYSTEM NAVIGATION', 'log-line--heading');
-            addLine('these commands will help you move around the filesystem!', 'log-line--body');
+            addLine('These commands will help you move around the filesystem!', 'log-line--body');
             addBlank();
             addLine('ls  — lists directory contents (files, other directories)', 'log-line--body');
             addLine('$ ls                      # list current directory', 'log-line--cmd-example');
@@ -261,6 +279,11 @@
         }
 
         function catFileops() {
+            /**
+             * The contents of the fileops.txt file
+             * This file contains some basic linux commands that users can use to manipulate files
+             * @returns {string} fileops.txt
+            */
             addBlank();
             var anchor = addLine('─── fileops.txt ──────────────────────────────────────', 'log-line--divider');
             addBlank();
