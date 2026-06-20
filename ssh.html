@@ -3,14 +3,405 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>ssh/ — need help on linux?</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .breadcrumb {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            margin: 0 0 20px;
+        }
+        .breadcrumb .path { color: var(--accent-cyan); }
+
+        .log-line--heading {
+            color: var(--accent-amber-bright);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+        .log-line--body        { color: var(--text-secondary); padding-left: 2px; }
+        .log-line--indent      { color: var(--text-secondary); padding-left: 20px; }
+        .log-line--cmd-example { color: var(--accent-amber); padding-left: 20px; }
+        .log-line--divider     { color: var(--border-strong); letter-spacing: 2px; }
+
+        /* natural scroll */
+        .terminal-log { margin-bottom: 12px; }
+
+        .file-unread { color: var(--text-primary); }
+        .file-read   { color: var(--text-dim); }
+    </style>
 </head>
 <body>
-    <h1>SSH Challenge</h1>
-    <h2></h2>
-    <a href="index.html">
-    <button>Return to Homepage</button>
-    </a>
+    <p class="eyebrow">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/ssh#</span>
+    </p>
+
+    <h1>welcome to ssh</h1>
+    <h2>introduction to ssh and remote access</h2>
+
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
+
+    <div class="terminal-input" id="input-row">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/ssh#</span>
+        <input
+            type="text"
+            id="cmd-input"
+            class="cmd-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="try: ls"
+            aria-label="Terminal command input">
+    </div>
+
+    <div class="terminal-input" id="nav-hint" style="display:none">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/ssh#</span>
+        <input
+            type="text"
+            id="nav-input"
+            class="cmd-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="cd .. to go back"
+            aria-label="Navigation input">
+    </div>
+
+    <noscript>
+        <p>Enable JavaScript to use the interactive terminal.</p>
+        <a href="index.html"><button>Return to Homepage</button></a>
+    </noscript>
+
+    <script>
+    (function () {
+        var PROMPT = 'frhs@ubuntu:~/home/ssh# ';
+
+        var input    = document.getElementById('cmd-input');
+        var log      = document.getElementById('terminal-log');
+        var hint     = document.getElementById('nav-hint');
+        var inputRow = document.getElementById('input-row');
+
+        var read = {
+            'introduction.txt': false,
+            'ssh.txt':   false,
+            'sshd_config.txt':      false
+        };
+
+        var FILES     = Object.keys(read);
+        var COMMANDS  = ['ls', 'cat', 'cd', 'pwd'];
+        var CD_MAIN   = ['..', '~', '/home'];
+        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../ssh', '../services', '../backdoors'];
+
+        // ── helpers ────────────────────────────────────────────────
+
+        // cat jumps to new content
+        function addLine(text, cls) {
+            var p = document.createElement('p');
+            p.className = 'log-line ' + (cls || '');
+            p.textContent = text;
+            log.appendChild(p);
+            return p; // caller can use the returned node as a scroll anchor
+        }
+
+        function addBlank() { return addLine('', ''); }
+
+        function scrollToEl(el) {
+            requestAnimationFrame(function() {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        function updatePlaceholder() {
+            var unread = FILES.filter(function(f){ return !read[f]; });
+            input.placeholder = unread.length === 0
+                ? 'all files read! cd .. to go back'
+                : 'try: cat ' + unread[0];
+        }
+
+        // ── tab completion ─────────────────────────────────────────
+        function tabComplete(inputEl, availableFiles, availableCd) {
+            var val   = inputEl.value;
+            var parts = val.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+
+            if (parts.length === 1 && !val.endsWith(' ')) {
+                var m = COMMANDS.filter(function(c){ return c.startsWith(cmd); });
+                if (m.length === 1) inputEl.value = m[0] + ' ';
+                return;
+            }
+
+            var partial = parts.slice(1).join(' ');
+
+            if (cmd === 'cat') {
+                var m = availableFiles.filter(function(f){ return f.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cat ' + m[0];
+            } else if (cmd === 'cd') {
+                var m = availableCd.filter(function(d){ return d.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cd ' + m[0];
+            } else if (cmd === 'ls') {
+                var flags = ['-l', '-la'];
+                var idx = flags.indexOf(partial);
+                inputEl.value = 'ls ' + flags[(idx + 1) % flags.length];
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                tabComplete(input, FILES, CD_MAIN);
+            }
+        });
+
+        // ── ls ─────────────────────────────────────────────────────
+        function doLs(args) {
+            var flagChars = args.join('').replace(/-/g,'').toLowerCase();
+            var wantsLong = flagChars.indexOf('l') !== -1;
+            var wantsAll  = flagChars.indexOf('a') !== -1;
+
+            var files = [
+                { name: 'introduction.txt', desc: 'an introduction to ssh and sshd' },
+                { name: 'ssh.txt',   desc: 'how to use ssh' },
+                { name: 'sshd_config.txt',      desc: 'secure configuration for sshd' }
+            ];
+
+            if (wantsLong) {
+                addLine('total 3', 'log-line--info');
+                files.forEach(function(f) {
+                    var p = document.createElement('p');
+                    p.className = 'log-line log-line--dir';
+
+                    var perm = document.createElement('span');
+                    perm.className = 'dir-perm';
+                    perm.textContent = '-rw-r--r--';
+
+                    var name = document.createElement('span');
+                    name.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    name.textContent = f.name;
+
+                    var desc = document.createElement('span');
+                    desc.className = 'dir-desc';
+                    desc.textContent = f.desc;
+
+                    p.appendChild(perm); p.appendChild(name); p.appendChild(desc);
+                    log.appendChild(p);
+                });
+            } else {
+                var row = document.createElement('p');
+                row.className = 'log-line log-line--ls';
+                files.forEach(function(f) {
+                    var span = document.createElement('span');
+                    span.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    span.textContent = f.name;
+                    row.appendChild(span);
+                });
+                log.appendChild(row);
+            }
+
+            if (wantsLong && wantsAll) {
+                addLine('# continuing to use ls -la is a good habit to build!', 'log-line--easter');
+            }
+
+            updatePlaceholder();
+        }
+
+        // ── cat functions — each returns its anchor element ────────
+
+        function catIntroduction() {
+            addBlank();
+            var anchor = addLine('─── introduction.txt ─────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('REMOTE ACCESS', 'log-line--heading');
+            addBlank();
+            addLine('welcome to ssh and sshd!', 'log-line--body');
+            addLine('ssh (secure shell) is a protocol for securely accessing remote computers.', 'log-line--body');
+            addLine('sshd (ssh daemon) is the service that runs on the remote computer to handle ssh connections.', 'log-line--body');
+            addBlank();
+            addLine('ssh allows you to securely connect to other computers and execute commands.', 'log-line--body');
+            addLine('evidently, this is a powerful tool for remote administration.', 'log-line--body');
+            addBlank();
+            addLine('at the same time, it can be a major vulnerability if not configured properly.', 'log-line--body');
+            addLine('attackers with the right credentials can utilize ssh to gain unauthorized remote access to systems, which can facilitate privilege escalation.(they get admin power)', 'log-line--body');
+            addLine('therefore, it is crucial to securely configure sshd and monitor ssh access to protect your systems.', 'log-line--body');
+            addBlank();
+            addLine('in this section, we will cover the basics of using ssh, configuring sshd securely, and monitoring for suspicious ssh activity.', 'log-line--body');
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catssh() {
+            addBlank();
+            var anchor = addLine('─── ssh.txt ───────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('HOW TO USE SSH', 'log-line--heading');
+            addLine('before understanding how to use ssh, let\'s cover why one might want to use it.', 'log-line--body');
+            addLine('ssh is commonly used for remote administration, file transfers, and secure communication between computers.', 'log-line--body');
+            addLine('ssh encrypts data sent between computers, helping protect information from interception.', 'log-line--body');
+            addBlank();
+            addLine('ssh  — connect to a remote computer', 'log-line--body');
+            addLine('$ ssh user@hostname        # connect as a specific user to a remote computer hostname', 'log-line--cmd-example');
+            addLine('tip: the hostname is typically an ip address or domain name', 'log-line--body');
+            addLine('$ ssh hostname              # connect as the current user', 'log-line--cmd-example');
+            addLine('note: the remote computer must be running sshd and you must have valid credentials to connect.', 'log-line--body');
+            addLine('once connected, you can run commands on the remote computer as if you were using its terminal directly.', 'log-line--body');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catsshd() {
+            addBlank();
+            var anchor = addLine('─── sshd.txt ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('SSHD CONFIGURATION', 'log-line--heading');
+            addBlank();
+            addLine('sshd is the SSH daemon that runs on the server side and handles incoming SSH connections.', 'log-line--body');
+            addLine('the sshd_config file is the main configuration file for sshd, and it controls how sshd operates and what security measures are in place.', 'log-line--body');
+            addLine('it can be located at /etc/ssh/sshd_config on most linux systems.', 'log-line--body');
+            addLine('you can edit sshd_config with a text editor like nano or vim to change sshd settings.', 'log-line--body');
+            addBlank();
+            addLine('some important sshd_config settings to consider:', 'log-line--body');
+            addLine('  PermitRootLogin no          # disallow direct root login', 'log-line--cmd-example');
+            addLine('  PasswordAuthentication no   # disable password authentication (use keys instead)', 'log-line--cmd-example');
+            addLine('  PubkeyAuthentication yes    # enable public key authentication', 'log-line--cmd-example');
+            addLine('  AllowUsers user1 user2       # only allow specific users to connect', 'log-line--cmd-example');
+            addLine('  AllowGroups group1 group2    # only allow users in specific groups to connect', 'log-line--cmd-example');
+            addLine('  PermitEmptyPasswords no    # disallow accounts with empty passwords', 'log-line--cmd-example');  
+            addLine('  MaxAuthTries 3              # limit authentication attempts (prevent brute force)', 'log-line--cmd-example');
+            addLine('  LogLevel VERBOSE            # log more details about ssh connections', 'log-line--cmd-example');
+            addLine('  port 22                     # default port for SSH', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        // ── cat dispatcher ─────────────────────────────────────────
+        function doCat(target) {
+            var anchor;
+            if (target === 'introduction.txt') {
+                anchor = catIntroduction();
+                read['introduction.txt'] = true;
+            } else if (target === 'ssh.txt') {
+                anchor = catssh();
+                read['ssh.txt'] = true;
+            } else if (target === 'sshd_config.txt') {
+                anchor = catsshd();
+                read['sshd_config.txt'] = true;
+            } else {
+                addLine('cat: ' + target + ': No such file or directory', 'log-line--error');
+                return;
+            }
+
+            // scroll is handled by the parent input handler via anchorIndex
+            updatePlaceholder();
+
+            if (FILES.every(function(f){ return read[f]; })) {
+                inputRow.style.display = 'none';
+                hint.style.display = 'flex';
+                document.getElementById('nav-input').focus();
+            }
+        }
+
+        // ── main input handler ─────────────────────────────────────
+        input.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            var raw = input.value.trim();
+            if (raw === '') return;
+
+            addLine(PROMPT + raw, 'log-line--cmd');
+            input.value = '';
+
+            // snapshot child count before any output is added — whatever
+            // lands at this index is the first new line, and we scroll to it
+            var anchorIndex = log.children.length;
+
+            var parts = raw.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+            var args  = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'cat') {
+                if (!args[0]) {
+                    addLine('cat: missing operand', 'log-line--error');
+                } else {
+                    doCat(args[0].toLowerCase());
+                }
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                if (!target || target === '..' || target === '~' || target === '/home') {
+                    window.location.href = 'index.html';
+                } else {
+                    addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                }
+            } else if (cmd === 'pwd') {
+                addLine('/home/frhs/ssh', 'log-line--info');
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        });
+
+        // ── nav input ──────────────────────────────────────────────
+        var navInput = document.getElementById('nav-input');
+
+        navInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                tabComplete(navInput, FILES, CD_NAV);
+                return;
+            }
+            if (e.key !== 'Enter') return;
+            var raw = navInput.value.trim();
+            if (raw === '') return;
+
+            addLine(PROMPT + raw, 'log-line--cmd');
+            navInput.value = '';
+
+            var anchorIndex = log.children.length;
+
+            var parts = raw.split(/\s+/);
+            var cmd   = parts[0].toLowerCase();
+            var args  = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'pwd') {
+                addLine('/home/frhs/ssh', 'log-line--info');
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                var routes = {
+                    '..':           'index.html',
+                    '~':            'index.html',
+                    '/home':        'index.html',
+                    '../passwords': 'passwords.html',
+                    '../users':     'users.html',
+                    '../ssh':       'ssh.html',
+                    '../services':  'pas.html',
+                    '../backdoors': 'backdoors.html'
+                };
+                if (routes[target]) {
+                    addLine('leaving ssh/ ...', 'log-line--info');
+                    navInput.disabled = true;
+                    setTimeout(function(){ window.location.href = routes[target]; }, 400);
+                } else {
+                    addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                }
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        });
+
+        input.focus();
+    })();
+    </script>
 </body>
 </html>

@@ -213,15 +213,20 @@
             addBlank();
             addLine('THE BEGINNING', 'log-line--heading');
             addBlank();
+            addLine('welcome to linux from the sky down....... here is what you need to know about learning linux for special cybersecurity competitions :)', 'log-line--body');
             addLine('most interactions will occur within a terminal, which is completely text-based.', 'log-line--body');
-            addLine('inside the terminal, you will be navigating a linux filesystem, organized into', 'log-line--body');
+            addLine('inside the terminal, you will need to navigate the filesystem, organized into', 'log-line--body');
             addLine('directories (folders) and files within them.', 'log-line--body');
             addBlank();
-            addLine('therefore, you will need to learn some basic commands to navigate the filesystem', 'log-line--body');
+            addLine('therefore, you will need to learn some basic commands to move around', 'log-line--body');
             addLine('and manipulate files.', 'log-line--body');
             addBlank();
             addLine('if you are reading this, you have already used the ls, cd, and cat commands!', 'log-line--body');
-            addLine('try reading the other files in this directory to learn more.', 'log-line--body');
+            addLine('ls is list, and it lists the contents of a directory.', 'log-line--cmd-example');
+            addLine('cd is change directory, and it moves you into a different directory.', 'log-line--cmd-example');
+            addLine('cat is concatenate, and it displays the contents of a file.', 'log-line--cmd-example');
+            addBlank();
+            addLine('try reading the other files in this directory to learn more!', 'log-line--body');
             addBlank();
             addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
             addBlank();
@@ -269,23 +274,19 @@
             addLine('cat  — display file contents', 'log-line--body');
             addLine('$ cat file.txt', 'log-line--cmd-example');
             addBlank();
-            addLine('nano — basic text editor  (vim is another option)', 'log-line--body');
+            addLine('nano — basic text editor--important for modifying files!  (vim is another option)', 'log-line--body');
             addLine('$ nano file.txt', 'log-line--cmd-example');
             addLine('  ctrl+o to save, ctrl+x to exit', 'log-line--indent');
             addBlank();
             addLine('touch — create an empty file', 'log-line--body');
             addLine('$ touch file.txt', 'log-line--cmd-example');
             addBlank();
-            addLine('mkdir — create a directory', 'log-line--body');
-            addLine('$ mkdir directory_name', 'log-line--cmd-example');
-            addLine('$ mkdir -p a/b/c          # create nested directories', 'log-line--cmd-example');
-            addBlank();
             addLine('rm  — remove a file or directory', 'log-line--body');
             addLine('$ rm file.txt             # delete a file', 'log-line--cmd-example');
             addLine('$ rm -r directory_name    # delete a directory and its contents', 'log-line--cmd-example');
             addLine('  warning: rm is permanent, there is no trash!', 'log-line--indent');
             addBlank();
-            addLine('cp  — copy a file or directory', 'log-line--body');
+            addLine('cp  — copy a file or directory--useful for creating backups', 'log-line--body');
             addLine('$ cp source destination', 'log-line--cmd-example');
             addLine('$ cp -r source_dir dest_dir', 'log-line--cmd-example');
             addBlank();
@@ -358,7 +359,7 @@
                     addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
                 }
             } else if (cmd === 'pwd') {
-                addLine('/home/basics', 'log-line--info');
+                addLine('/home/frhs/basics', 'log-line--info');
             } else {
                 addLine('bash: ' + cmd + ': command not found', 'log-line--error');
             }
