@@ -10,7 +10,7 @@
     <p class="eyebrow"><span class="prompt-symbol">frhs@ubuntu:~#</span> cat /etc/motd </p>
 
     <h1>need help on linux?</h1>
-    <h2>this website is designed to help you learn some basic linux cybersecurity practices. explore to find some things to get you started!</h2>
+    <h2>This website is designed to help you learn some basic linux cybersecurity practices. Explore to find some things to get you started!</h2>
 
 
 
@@ -58,6 +58,12 @@
             ];
 
             function addLine(text, className) {
+                /**
+                * This function defines the text in the files
+                * @param {string} text - The text displayed on the line
+                * @param {string} className - Defines the style used on that line of text
+                * @returns {string} - The text with the style. 
+                */
                 var p = document.createElement('p');
                 p.className = 'log-line ' + className;
                 p.textContent = text;
@@ -67,6 +73,11 @@
 
             // ls plain
             function addPlainListing() {
+                /**
+                 * This function displays the contents of a directory normally
+                 * This will not include permissions or the description
+                 * @returns {void}
+                 */
                 var p = document.createElement('p');
                 p.className = 'log-line log-line--ls';
                 dirs.forEach(function (dir) {
@@ -81,6 +92,11 @@
 
             // `ls -l` / `ls -la` — permissions + description
             function addDetailedListing() {
+                /**
+                 * This function displays the contents of the directory detailedly
+                 * This will include the content's permission and description.
+                 * @returns {void}
+                 */
                 addLine('total ' + dirs.length, 'log-line--info');
                 dirs.forEach(function (dir) {
                     var p = document.createElement('p');
@@ -107,6 +123,12 @@
             }
 
             function findDir(name) {
+                /**
+                 * This function checks if the directory indicated after the cd command exists.
+                 * @param {string} name - The target directory
+                 * @returns {object} - The directory's info if the directory exists
+                 * @returns {void} - If the directory does not exist
+                 */
                 var clean = name.replace(/\/+$/, '').toLowerCase();
                 for (var i = 0; i < dirs.length; i++) {
                     if (dirs[i].name === clean) return dirs[i];
@@ -177,12 +199,14 @@
                         addLine('cd: missing operand', 'log-line--error');
                     } else {
                         var dir = findDir(target);
+                        // if dir is not empty
                         if (dir) {
                             addLine('entering ' + dir.name + '/ ...', 'log-line--info');
                             input.disabled = true;
                             window.setTimeout(function () {
                                 window.location.href = dir.href;
                             }, 450);
+                        // if dir is empty
                         } else {
                             addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
                         }
