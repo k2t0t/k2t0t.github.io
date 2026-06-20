@@ -75,7 +75,7 @@
 
     <script>
     (function () {
-        var PROMPT = 'frhs@ubuntu:~/home/ssh# ';
+        var PROMPT = 'frhs@ubuntu:~/home/frhs/ssh# ';
 
         var input    = document.getElementById('cmd-input');
         var log      = document.getElementById('terminal-log');
@@ -91,7 +91,7 @@
         var FILES     = Object.keys(read);
         var COMMANDS  = ['ls', 'cat', 'cd', 'pwd'];
         var CD_MAIN   = ['..', '~', '/home'];
-        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../ssh', '../services', '../backdoors'];
+        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../basics', '../services', '../backdoors'];
 
         // ── helpers ────────────────────────────────────────────────
 
@@ -266,9 +266,9 @@
             addLine('  PermitRootLogin no          # disallow direct root login', 'log-line--cmd-example');
             addLine('  PasswordAuthentication no   # disable password authentication (use keys instead)', 'log-line--cmd-example');
             addLine('  PubkeyAuthentication yes    # enable public key authentication', 'log-line--cmd-example');
-            addLine('  AllowUsers user1 user2       # only allow specific users to connect', 'log-line--cmd-example');
-            addLine('  AllowGroups group1 group2    # only allow users in specific groups to connect', 'log-line--cmd-example');
-            addLine('  PermitEmptyPasswords no    # disallow accounts with empty passwords', 'log-line--cmd-example');  
+            addLine('  AllowUsers user1 user2      # only allow specific users to connect', 'log-line--cmd-example');
+            addLine('  AllowGroups group1 group2   # only allow users in specific groups to connect', 'log-line--cmd-example');
+            addLine('  PermitEmptyPasswords no     # disallow accounts with empty passwords', 'log-line--cmd-example');  
             addLine('  MaxAuthTries 3              # limit authentication attempts (prevent brute force)', 'log-line--cmd-example');
             addLine('  LogLevel VERBOSE            # log more details about ssh connections', 'log-line--cmd-example');
             addLine('  port 22                     # default port for SSH', 'log-line--cmd-example');

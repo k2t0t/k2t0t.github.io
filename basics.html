@@ -78,7 +78,7 @@
         /**
          * This function creates the pseudo-terminal function on the page. 
          */
-        var PROMPT = 'frhs@ubuntu:~/home/basics# ';
+        var PROMPT = 'frhs@ubuntu:~/home/frhs/basics# ';
 
         var input    = document.getElementById('cmd-input');
         var log      = document.getElementById('terminal-log');
@@ -457,7 +457,7 @@
             if (cmd === 'ls') {
                 doLs(args);
             } else if (cmd === 'pwd') {
-                addLine('/home/basics', 'log-line--info');
+                addLine('/home/frhs/basics', 'log-line--info');
             } else if (cmd === 'cd') {
                 var target = args.join('');
                 var routes = {
