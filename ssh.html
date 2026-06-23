@@ -75,7 +75,7 @@
 
     <script>
     (function () {
-        var PROMPT = 'frhs@ubuntu:~/home/ssh# ';
+        var PROMPT = 'frhs@ubuntu:~/home/frhs/ssh# ';
 
         var input    = document.getElementById('cmd-input');
         var log      = document.getElementById('terminal-log');
@@ -92,7 +92,7 @@
         var FILES     = Object.keys(read);
         var COMMANDS  = ['ls', 'cat', 'cd', 'pwd'];
         var CD_MAIN   = ['..', '~', '/home'];
-        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../ssh', '../services', '../backdoors'];
+        var CD_NAV    = ['..', '/home', '../passwords', '../users', '../basics', '../services', '../backdoors'];
 
         // ── helpers ────────────────────────────────────────────────
 
