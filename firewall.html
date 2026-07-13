@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>firewall/ — need help on linux?</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .log-line--heading {
+            color: var(--accent-amber-bright);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+        .log-line--body        { color: var(--text-secondary); padding-left: 2px; }
+        .log-line--indent      { color: var(--text-secondary); padding-left: 20px; }
+        .log-line--cmd-example { color: var(--accent-amber); padding-left: 20px; }
+        .log-line--divider     { color: var(--border-strong); letter-spacing: 2px; }
+        .terminal-log          { margin-bottom: 12px; }
+        .file-unread           { color: var(--text-primary); }
+        .file-read             { color: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <p class="eyebrow">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/firewall#</span>
+    </p>
+
+    <h1>welcome to firewall</h1>
+    <h2>ufw, firewalld, ports, and controlling network traffic</h2>
+
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
+
+    <div class="terminal-input" id="input-row">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/firewall#</span>
+        <input type="text" id="cmd-input" class="cmd-input"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="try: ls" aria-label="Terminal command input">
+    </div>
+
+    <div class="terminal-input" id="nav-hint" style="display:none">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/firewall#</span>
+        <input type="text" id="nav-input" class="cmd-input"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="cd .. to go back" aria-label="Navigation input">
+    </div>
+
+    <noscript>
+        <p>Enable JavaScript to use the interactive terminal.</p>
+        <a href="index.html"><button>Return to Homepage</button></a>
+    </noscript>
+
+    <script>
+    (function () {
+        var PROMPT = 'frhs@ubuntu:~/home/frhs/firewall# ';
+        var input    = document.getElementById('cmd-input');
+        var log      = document.getElementById('terminal-log');
+        var hint     = document.getElementById('nav-hint');
+        var inputRow = document.getElementById('input-row');
+
+        var read = {
+            'introduction.txt': false,
+            'commands.txt':     false
+        };
+
+        var FILES    = Object.keys(read);
+        var COMMANDS = ['ls', 'cat', 'cd', 'pwd'];
+        var CD_MAIN  = ['..', '~', '/home'];
+        var CD_NAV   = ['..', '/home', '../basics', '../users', '../passwords', '../files', '../services', '../ssh', '../backdoors'];
+
+        function addLine(text, cls) {
+            var p = document.createElement('p');
+            p.className = 'log-line ' + (cls || '');
+            p.textContent = text;
+            log.appendChild(p);
+            return p;
+        }
+        function addBlank() { return addLine('', ''); }
+        function scrollToEl(el) {
+            requestAnimationFrame(function() {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+        function updatePlaceholder() {
+            var unread = FILES.filter(function(f){ return !read[f]; });
+            input.placeholder = unread.length === 0
+                ? 'all files read! cd .. to go back'
+                : 'try: cat ' + unread[0];
+        }
+
+        function tabComplete(inputEl, availableFiles, availableCd) {
+            var val = inputEl.value, parts = val.split(/\s+/), cmd = parts[0].toLowerCase();
+            if (parts.length === 1 && !val.endsWith(' ')) {
+                var m = COMMANDS.filter(function(c){ return c.startsWith(cmd); });
+                if (m.length === 1) { inputEl.value = m[0] + ' '; return; }
+                return;
+            }
+            var partial = parts.slice(1).join(' ');
+            if (cmd === 'cat') {
+                var m = availableFiles.filter(function(f){ return f.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cat ' + m[0];
+            } else if (cmd === 'cd') {
+                var m = availableCd.filter(function(d){ return d.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cd ' + m[0];
+            } else if (cmd === 'ls') {
+                var flags = ['-l', '-la'], idx = flags.indexOf(partial);
+                inputEl.value = 'ls ' + flags[(idx + 1) % flags.length];
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') { e.preventDefault(); tabComplete(input, FILES, CD_MAIN); }
+        });
+
+        function doLs(args) {
+            var fc = args.join('').replace(/-/g,'').toLowerCase();
+            var wantsLong = fc.indexOf('l') !== -1, wantsAll = fc.indexOf('a') !== -1;
+            var files = [
+                { name: 'introduction.txt', desc: 'what firewalls do, ports, and common pitfalls' },
+                { name: 'commands.txt',     desc: 'ufw and firewalld commands reference' }
+            ];
+            if (wantsLong) {
+                addLine('total ' + files.length, 'log-line--info');
+                files.forEach(function(f) {
+                    var p = document.createElement('p'); p.className = 'log-line log-line--dir';
+                    var perm = document.createElement('span'); perm.className = 'dir-perm'; perm.textContent = '-rw-r--r--';
+                    var name = document.createElement('span'); name.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread'); name.textContent = f.name;
+                    var desc = document.createElement('span'); desc.className = 'dir-desc'; desc.textContent = f.desc;
+                    p.appendChild(perm); p.appendChild(name); p.appendChild(desc); log.appendChild(p);
+                });
+            } else {
+                var row = document.createElement('p'); row.className = 'log-line log-line--ls';
+                files.forEach(function(f) {
+                    var span = document.createElement('span');
+                    span.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    span.textContent = f.name; row.appendChild(span);
+                });
+                log.appendChild(row);
+            }
+            if (wantsLong && wantsAll) addLine('# ls -la on a firewall system — good instinct', 'log-line--easter');
+            updatePlaceholder();
+        }
+
+        // ── cat functions ──────────────────────────────────────────
+
+        function catIntroduction() {
+            addBlank();
+            var anchor = addLine('─── introduction.txt ─────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('WHAT IS A FIREWALL?', 'log-line--heading');
+            addBlank();
+            addLine('a firewall controls which network traffic is allowed in and out of a system.', 'log-line--body');
+            addLine('it works by inspecting packets and applying rules: allow this, deny that.', 'log-line--body');
+            addLine('without a firewall, any service running on your machine is reachable by anyone', 'log-line--body');
+            addLine('on the network — a serious risk in a competition or real environment.', 'log-line--body');
+            addBlank();
+            addLine('firewalls operate on two main directions of traffic:', 'log-line--body');
+            addLine('  incoming (inbound)  — traffic arriving at your machine from outside', 'log-line--cmd-example');
+            addLine('  outgoing (outbound) — traffic your machine is sending out', 'log-line--cmd-example');
+            addBlank();
+            addLine('most competition setups default to:', 'log-line--body');
+            addLine('  deny all incoming  — block everything in unless explicitly allowed', 'log-line--indent');
+            addLine('  allow all outgoing — let everything out unless explicitly blocked', 'log-line--indent');
+            addBlank();
+            addLine('PORTS', 'log-line--heading');
+            addBlank();
+            addLine('a port is a numbered channel (0–65535) that a service listens on.', 'log-line--body');
+            addLine('the firewall uses port numbers to decide which traffic to allow or block.', 'log-line--body');
+            addBlank();
+            addLine('important ports to know:', 'log-line--body');
+            addLine('  22    SSH          — remote shell access', 'log-line--cmd-example');
+            addLine('  80    HTTP         — unencrypted web traffic', 'log-line--cmd-example');
+            addLine('  443   HTTPS        — encrypted web traffic', 'log-line--cmd-example');
+            addLine('  21    FTP          — file transfer (unencrypted, avoid)', 'log-line--cmd-example');
+            addLine('  25    SMTP         — email sending', 'log-line--cmd-example');
+            addLine('  53    DNS          — domain name resolution', 'log-line--cmd-example');
+            addLine('  3306  MySQL        — database', 'log-line--cmd-example');
+            addLine('  3389  RDP          — windows remote desktop', 'log-line--cmd-example');
+            addLine('  8080  HTTP-alt     — common alternate web port', 'log-line--cmd-example');
+            addBlank();
+            addLine('ports below 1024 are "well-known" ports reserved for system services.', 'log-line--body');
+            addLine('ports 1024–49151 are registered ports for applications.', 'log-line--body');
+            addLine('ports 49152–65535 are dynamic/ephemeral, used for temporary connections.', 'log-line--body');
+            addBlank();
+            addLine('LINUX FIREWALL TOOLS', 'log-line--heading');
+            addBlank();
+            addLine('there are several firewall tools you might encounter on linux:', 'log-line--body');
+            addBlank();
+            addLine('iptables', 'log-line--body');
+            addLine('  — the traditional low-level linux firewall, built into the kernel', 'log-line--indent');
+            addLine('  — very powerful but complex syntax; most tools sit on top of it', 'log-line--indent');
+            addLine('  — still runs underneath ufw and firewalld', 'log-line--indent');
+            addBlank();
+            addLine('ufw (Uncomplicated Firewall)', 'log-line--body');
+            addLine('  — the default firewall tool on ubuntu and debian-based systems', 'log-line--indent');
+            addLine('  — simple, human-readable command syntax', 'log-line--indent');
+            addLine('  — wraps iptables with an easier interface', 'log-line--indent');
+            addBlank();
+            addLine('firewalld', 'log-line--body');
+            addLine('  — the default on fedora, rhel, centos, and rocky linux', 'log-line--indent');
+            addLine('  — uses the concept of "zones" to group rules', 'log-line--indent');
+            addLine('  — managed with the firewall-cmd tool', 'log-line--indent');
+            addBlank();
+            addLine('nftables', 'log-line--body');
+            addLine('  — the modern replacement for iptables, available on newer systems', 'log-line--indent');
+            addLine('  — more consistent syntax than iptables', 'log-line--indent');
+            addBlank();
+            addLine('COMMON PITFALLS', 'log-line--heading');
+            addBlank();
+            addLine('blocking SSH (port 22) while managing a remote machine', 'log-line--body');
+            addLine('  — if you block port 22 without an active session, you lock yourself out', 'log-line--indent');
+            addLine('  — always allow ssh BEFORE enabling the firewall on a remote system', 'log-line--indent');
+            addBlank();
+            addLine('enabling the firewall before defining any rules', 'log-line--body');
+            addLine('  — ufw with default deny-incoming and no allow rules = you can\'t connect', 'log-line--indent');
+            addLine('  — add your allow rules first, then enable', 'log-line--indent');
+            addBlank();
+            addLine('blocking a service that another allowed service depends on', 'log-line--body');
+            addLine('  — eg. blocking DNS (port 53) will break most outbound connections', 'log-line--indent');
+            addLine('  — blocking DHCP (port 67/68) can break network initialization', 'log-line--indent');
+            addBlank();
+            addLine('forgetting that rules are ordered', 'log-line--body');
+            addLine('  — in iptables, rules are matched top-to-bottom; first match wins', 'log-line--indent');
+            addLine('  — a deny-all rule at the top will block everything after it', 'log-line--indent');
+            addBlank();
+            addLine('not persisting rules across reboots', 'log-line--body');
+            addLine('  — iptables rules vanish on reboot unless saved', 'log-line--indent');
+            addLine('  — ufw and firewalld persist automatically', 'log-line--indent');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catCommands() {
+            addBlank();
+            var anchor = addLine('─── commands.txt ─────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('UFW COMMANDS (ubuntu / debian)', 'log-line--heading');
+            addBlank();
+            addLine('SETUP', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw status                    # check if ufw is active and list rules', 'log-line--cmd-example');
+            addLine('$ sudo ufw status verbose            # more detail including defaults', 'log-line--cmd-example');
+            addLine('$ sudo ufw status numbered           # list rules with numbers (for deletion)', 'log-line--cmd-example');
+            addLine('$ sudo ufw enable                    # turn on the firewall', 'log-line--cmd-example');
+            addLine('$ sudo ufw disable                   # turn off the firewall', 'log-line--cmd-example');
+            addLine('$ sudo ufw reset                     # wipe all rules and start fresh', 'log-line--cmd-example');
+            addBlank();
+            addLine('DEFAULT POLICIES', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw default deny incoming     # block all inbound (recommended start)', 'log-line--cmd-example');
+            addLine('$ sudo ufw default allow outgoing    # allow all outbound (typical default)', 'log-line--cmd-example');
+            addLine('$ sudo ufw default deny outgoing     # block all outbound (strict mode)', 'log-line--cmd-example');
+            addBlank();
+            addLine('ALLOWING TRAFFIC', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw allow ssh                 # allow SSH by service name (port 22)', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 22                  # allow by port number', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 22/tcp              # allow only TCP on port 22', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 80                  # allow HTTP', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 443                 # allow HTTPS', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 8080:8090/tcp       # allow a port range', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow from 192.168.1.0/24 # allow all traffic from a subnet', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow from 10.0.0.5 to any port 22  # allow specific IP on port 22', 'log-line--cmd-example');
+            addBlank();
+            addLine('BLOCKING TRAFFIC', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw deny 23                   # block telnet', 'log-line--cmd-example');
+            addLine('$ sudo ufw deny 21                   # block FTP', 'log-line--cmd-example');
+            addLine('$ sudo ufw deny from 192.168.1.50   # block a specific IP entirely', 'log-line--cmd-example');
+            addLine('$ sudo ufw deny from 192.168.1.50 to any port 22  # block IP on specific port', 'log-line--cmd-example');
+            addBlank();
+            addLine('DELETING RULES', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw delete allow 80           # delete a rule by its definition', 'log-line--cmd-example');
+            addLine('$ sudo ufw status numbered           # list rules with numbers first', 'log-line--cmd-example');
+            addLine('$ sudo ufw delete 3                  # delete rule number 3', 'log-line--cmd-example');
+            addBlank();
+            addLine('LOGGING', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo ufw logging on                # enable firewall logging', 'log-line--cmd-example');
+            addLine('$ sudo ufw logging off               # disable logging', 'log-line--cmd-example');
+            addLine('$ sudo cat /var/log/ufw.log          # view firewall logs', 'log-line--cmd-example');
+            addBlank();
+            addLine('TYPICAL COMPETITION UFW SETUP', 'log-line--heading');
+            addBlank();
+            addLine('a safe starting sequence for a competition machine:', 'log-line--body');
+            addLine('$ sudo ufw default deny incoming', 'log-line--cmd-example');
+            addLine('$ sudo ufw default allow outgoing', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow ssh                 # keep ssh open so you don\'t lock out', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 80                  # if the machine runs a web server', 'log-line--cmd-example');
+            addLine('$ sudo ufw allow 443', 'log-line--cmd-example');
+            addLine('$ sudo ufw enable', 'log-line--cmd-example');
+            addLine('$ sudo ufw status verbose            # verify everything looks right', 'log-line--cmd-example');
+            addBlank();
+            addLine('──────────────────────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('FIREWALLD COMMANDS (fedora / rhel / centos)', 'log-line--heading');
+            addBlank();
+            addLine('firewalld uses "zones" — collections of rules applied to a network interface.', 'log-line--body');
+            addLine('the default zone is usually "public".', 'log-line--body');
+            addBlank();
+            addLine('SETUP', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo systemctl start firewalld     # start the firewall service', 'log-line--cmd-example');
+            addLine('$ sudo systemctl enable firewalld    # start automatically on boot', 'log-line--cmd-example');
+            addLine('$ sudo systemctl stop firewalld      # stop the firewall', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --state          # check if firewalld is running', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --list-all       # list all rules in the default zone', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --list-all-zones # list all zones and their rules', 'log-line--cmd-example');
+            addBlank();
+            addLine('ALLOWING AND BLOCKING', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo firewall-cmd --add-service=ssh         # allow ssh (temporary)', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --add-service=http        # allow http', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --add-service=https       # allow https', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --add-port=8080/tcp       # allow a specific port', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --remove-service=ftp      # block ftp', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --remove-port=23/tcp      # block telnet', 'log-line--cmd-example');
+            addBlank();
+            addLine('NOTE: without --permanent, rules are lost on reload/reboot.', 'log-line--body');
+            addLine('add --permanent to make rules stick, then reload:', 'log-line--body');
+            addLine('$ sudo firewall-cmd --permanent --add-service=ssh', 'log-line--cmd-example');
+            addLine('$ sudo firewall-cmd --reload', 'log-line--cmd-example');
+            addBlank();
+            addLine('RICH RULES (block a specific IP)', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo firewall-cmd --add-rich-rule=\'rule family="ipv4" source address="10.0.0.5" drop\'', 'log-line--cmd-example');
+            addLine('  — drops all traffic from IP 10.0.0.5', 'log-line--indent');
+            addBlank();
+            addLine('──────────────────────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('USEFUL GENERAL COMMANDS', 'log-line--heading');
+            addBlank();
+            addLine('see what ports are currently open and listening:', 'log-line--body');
+            addLine('$ sudo ss -tlnp                      # show listening TCP ports and their processes', 'log-line--cmd-example');
+            addLine('$ sudo netstat -tlnp                 # same, older tool', 'log-line--cmd-example');
+            addLine('$ sudo lsof -i                       # all open network connections', 'log-line--cmd-example');
+            addLine('$ sudo lsof -i :22                   # who is using port 22', 'log-line--cmd-example');
+            addBlank();
+            addLine('check iptables rules directly (what ufw/firewalld generates underneath):', 'log-line--body');
+            addLine('$ sudo iptables -L -n -v             # list all rules with packet counts', 'log-line--cmd-example');
+            addLine('$ sudo iptables -L INPUT -n -v       # just incoming rules', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function doCat(target) {
+            var anchor;
+            if      (target === 'introduction.txt') { anchor = catIntroduction(); read['introduction.txt'] = true; }
+            else if (target === 'commands.txt')     { anchor = catCommands();     read['commands.txt']     = true; }
+            else {
+                addLine('cat: ' + target + ': No such file or directory', 'log-line--error');
+                return;
+            }
+            updatePlaceholder();
+            if (anchor) scrollToEl(anchor);
+            if (FILES.every(function(f){ return read[f]; })) {
+                inputRow.style.display = 'none';
+                hint.style.display = 'flex';
+                document.getElementById('nav-input').focus();
+            }
+        }
+
+        function handleCmd(raw, isNav) {
+            addLine(PROMPT + raw, 'log-line--cmd');
+            var anchorIndex = log.children.length;
+            var parts = raw.split(/\s+/), cmd = parts[0].toLowerCase(), args = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'cat') {
+                if (!args[0]) addLine('cat: missing operand', 'log-line--error');
+                else doCat(args[0].toLowerCase());
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                if (isNav) {
+                    var routes = {
+                        '..': 'index.html', '~': 'index.html', '/home': 'index.html',
+                        '../basics':     'basics.html',
+                        '../users':      'users.html',
+                        '../passwords':  'passwords.html',
+                        '../files':      'files.html',
+                        '../services':   'pas.html',
+                        '../ssh':        'ssh.html',
+                        '../backdoors':  'backdoors.html'
+                    };
+                    if (routes[target]) {
+                        addLine('leaving firewall/ ...', 'log-line--info');
+                        document.getElementById('nav-input').disabled = true;
+                        setTimeout(function(){ window.location.href = routes[target]; }, 400);
+                    } else {
+                        addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                    }
+                } else {
+                    if (!target || target === '..' || target === '~' || target === '/home') {
+                        window.location.href = 'index.html';
+                    } else {
+                        addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                    }
+                }
+            } else if (cmd === 'pwd') {
+                addLine('/home/frhs/firewall', 'log-line--info');
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            var raw = input.value.trim(); if (!raw) return;
+            input.value = ''; handleCmd(raw, false);
+        });
+
+        var navInput = document.getElementById('nav-input');
+        navInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') { e.preventDefault(); tabComplete(navInput, FILES, CD_NAV); return; }
+            if (e.key !== 'Enter') return;
+            var raw = navInput.value.trim(); if (!raw) return;
+            navInput.value = ''; handleCmd(raw, true);
+        });
+
+        input.focus();
+    })();
+    </script>
+</body>
+</html>

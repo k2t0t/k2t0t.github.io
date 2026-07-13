@@ -27,15 +27,15 @@
             aria-label="Terminal command input">
     </div>
 
-    <!-- if JS is disabled, fall back to a plain link list so the site stays usable -->
     <noscript>
         <nav class="modules-locked">
             <a href="basics.html"><button>Basic Commands</button></a>
-            <a href="passwords.html"><button>Password Management</button></a>
             <a href="users.html"><button>User Auditing</button></a>
-            <a href="ssh.html"><button>SSH Hardening</button></a>
+            <a href="passwords.html"><button>Password Management</button></a>
             <a href="files.html"><button>Files</button></a>
             <a href="pas.html"><button>Programs and Services</button></a>
+            <a href="ssh.html"><button>SSH Hardening</button></a>
+            <a href="firewall.html"><button>Firewall</button></a>
             <a href="backdoors.html"><button>Backdoor Detection</button></a>
         </nav>
     </noscript>
@@ -57,11 +57,12 @@
 
             var dirs = [
                 { name: 'basics',    href: 'basics.html',    desc: 'Essential commands and navigation fundamentals' },
-                { name: 'passwords', href: 'passwords.html', desc: 'Password policy, hashing, and storage' },
                 { name: 'users',     href: 'users.html',     desc: 'Auditing accounts, groups, and permissions' },
-                { name: 'ssh',       href: 'ssh.html',       desc: 'Locking down remote access' },
+                { name: 'passwords', href: 'passwords.html', desc: 'Password policy, hashing, and storage' },
                 { name: 'files',     href: 'files.html',     desc: 'File types, permissions, and filesystem auditing' },
                 { name: 'services',  href: 'pas.html',       desc: 'Programs and services running on the system' },
+                { name: 'ssh',       href: 'ssh.html',       desc: 'Locking down remote access' },
+                { name: 'firewall',  href: 'firewall.html',  desc: 'UFW, firewalld, ports, and traffic rules' },
                 { name: 'backdoors', href: 'backdoors.html', desc: 'Detecting persistence and hidden access' }
             ];
 
@@ -73,7 +74,6 @@
                 log.scrollTop = log.scrollHeight;
             }
 
-            // ls plain
             function addPlainListing() {
                 var p = document.createElement('p');
                 p.className = 'log-line log-line--ls';
@@ -87,7 +87,6 @@
                 log.scrollTop = log.scrollHeight;
             }
 
-            // ls -l / ls -la — permissions + description
             function addDetailedListing() {
                 addLine('total ' + dirs.length, 'log-line--info');
                 dirs.forEach(function (dir) {
@@ -159,7 +158,7 @@
 
                 var flagChars = flags.join('').replace(/-/g, '').toLowerCase();
                 var wantsLong = flagChars.indexOf('l') !== -1;
-                var wantsAll = flagChars.indexOf('a') !== -1;
+                var wantsAll  = flagChars.indexOf('a') !== -1;
 
                 if (cmd === 'ls') {
                     if (wantsLong) {
@@ -174,7 +173,6 @@
 
                 } else if (cmd === 'cd') {
                     var target = flags.join(' ');
-
                     if (!target) {
                         addLine('cd: missing operand', 'log-line--error');
                     } else {
