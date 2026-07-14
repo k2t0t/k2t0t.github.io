@@ -12,8 +12,6 @@
     <h1>need help on linux?</h1>
     <h2>This website is designed to help you learn some basic linux cybersecurity practices. Explore to find some things to get you started! <br>it's highly recommended to follow through with a blank linux image to help you get practice!</h2>
 
-
-
     <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
 
     <div class="terminal-input">
@@ -36,6 +34,7 @@
             <a href="passwords.html"><button>Password Management</button></a>
             <a href="users.html"><button>User Auditing</button></a>
             <a href="ssh.html"><button>SSH Hardening</button></a>
+            <a href="files.html"><button>Files</button></a>
             <a href="pas.html"><button>Programs and Services</button></a>
             <a href="backdoors.html"><button>Backdoor Detection</button></a>
         </nav>
@@ -53,17 +52,12 @@
                 { name: 'passwords', href: 'passwords.html', desc: 'Password policy, hashing, and storage' },
                 { name: 'users',     href: 'users.html',     desc: 'Auditing accounts, groups, and permissions' },
                 { name: 'ssh',       href: 'ssh.html',       desc: 'Locking down remote access' },
+                { name: 'files',     href: 'files.html',     desc: 'File types, permissions, and filesystem auditing' },
                 { name: 'services',  href: 'pas.html',       desc: 'Programs and services running on the system' },
                 { name: 'backdoors', href: 'backdoors.html', desc: 'Detecting persistence and hidden access' }
             ];
 
             function addLine(text, className) {
-                /**
-                * This function defines the text in the files
-                * @param {string} text - The text displayed on the line
-                * @param {string} className - Defines the style used on that line of text
-                * @returns {string} - The text with the style. 
-                */
                 var p = document.createElement('p');
                 p.className = 'log-line ' + className;
                 p.textContent = text;
@@ -73,11 +67,6 @@
 
             // ls plain
             function addPlainListing() {
-                /**
-                 * This function displays the contents of a directory normally
-                 * This will not include permissions or the description
-                 * @returns {void}
-                 */
                 var p = document.createElement('p');
                 p.className = 'log-line log-line--ls';
                 dirs.forEach(function (dir) {
@@ -90,13 +79,8 @@
                 log.scrollTop = log.scrollHeight;
             }
 
-            // `ls -l` / `ls -la` — permissions + description
+            // ls -l / ls -la — permissions + description
             function addDetailedListing() {
-                /**
-                 * This function displays the contents of the directory detailedly
-                 * This will include the content's permission and description.
-                 * @returns {void}
-                 */
                 addLine('total ' + dirs.length, 'log-line--info');
                 dirs.forEach(function (dir) {
                     var p = document.createElement('p');
@@ -123,12 +107,6 @@
             }
 
             function findDir(name) {
-                /**
-                 * This function checks if the directory indicated after the cd command exists.
-                 * @param {string} name - The target directory
-                 * @returns {object} - The directory's info if the directory exists
-                 * @returns {void} - If the directory does not exist
-                 */
                 var clean = name.replace(/\/+$/, '').toLowerCase();
                 for (var i = 0; i < dirs.length; i++) {
                     if (dirs[i].name === clean) return dirs[i];
@@ -175,8 +153,6 @@
                 var cmd = parts[0].toLowerCase();
                 var flags = parts.slice(1);
 
-                // collapse every flag's letters into one string, so -la, -al, etc. all work
-        
                 var flagChars = flags.join('').replace(/-/g, '').toLowerCase();
                 var wantsLong = flagChars.indexOf('l') !== -1;
                 var wantsAll = flagChars.indexOf('a') !== -1;
@@ -199,14 +175,12 @@
                         addLine('cd: missing operand', 'log-line--error');
                     } else {
                         var dir = findDir(target);
-                        // if dir is not empty
                         if (dir) {
                             addLine('entering ' + dir.name + '/ ...', 'log-line--info');
                             input.disabled = true;
                             window.setTimeout(function () {
                                 window.location.href = dir.href;
                             }, 450);
-                        // if dir is empty
                         } else {
                             addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
                         }

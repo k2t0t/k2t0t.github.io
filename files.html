@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>files/ — need help on linux?</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .log-line--heading {
+            color: var(--accent-amber-bright);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+        .log-line--body        { color: var(--text-secondary); padding-left: 2px; }
+        .log-line--indent      { color: var(--text-secondary); padding-left: 20px; }
+        .log-line--cmd-example { color: var(--accent-amber); padding-left: 20px; }
+        .log-line--divider     { color: var(--border-strong); letter-spacing: 2px; }
+        .terminal-log          { margin-bottom: 12px; }
+        .file-unread           { color: var(--text-primary); }
+        .file-read             { color: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <p class="eyebrow">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/files#</span>
+    </p>
+
+    <h1>welcome to files</h1>
+    <h2>file types, permissions, and looking for potential danger</h2>
+
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
+
+    <div class="terminal-input" id="input-row">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/files#</span>
+        <input type="text" id="cmd-input" class="cmd-input"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="try: ls" aria-label="Terminal command input">
+    </div>
+
+    <div class="terminal-input" id="nav-hint" style="display:none">
+        <span class="prompt-symbol">frhs@ubuntu:~/home/frhs/files#</span>
+        <input type="text" id="nav-input" class="cmd-input"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="cd .. to go back" aria-label="Navigation input">
+    </div>
+
+    <noscript>
+        <p>Enable JavaScript to use the interactive terminal.</p>
+        <a href="index.html"><button>Return to Homepage</button></a>
+    </noscript>
+
+    <script>
+    (function () {
+        var PROMPT = 'frhs@ubuntu:~/home/frhs/files# ';
+        var input    = document.getElementById('cmd-input');
+        var log      = document.getElementById('terminal-log');
+        var hint     = document.getElementById('nav-hint');
+        var inputRow = document.getElementById('input-row');
+
+        var read = {
+            'introduction.txt':  false,
+            'permissions.txt':   false,
+            'permissions2.txt':  false,
+            'commands.txt':      false
+        };
+
+        var FILES    = Object.keys(read);
+        var COMMANDS = ['ls', 'cat', 'cd', 'pwd'];
+        var CD_MAIN  = ['..', '~', '/home'];
+        var CD_NAV   = ['..', '/home', '../basics', '../passwords', '../users', '../ssh', '../services', '../backdoors'];
+
+        function addLine(text, cls) {
+            var p = document.createElement('p');
+            p.className = 'log-line ' + (cls || '');
+            p.textContent = text;
+            log.appendChild(p);
+            return p;
+        }
+        function addBlank() { return addLine('', ''); }
+        function scrollToEl(el) {
+            requestAnimationFrame(function() {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+        function updatePlaceholder() {
+            var unread = FILES.filter(function(f){ return !read[f]; });
+            input.placeholder = unread.length === 0
+                ? 'all files read! cd .. to go back'
+                : 'try: cat ' + unread[0];
+        }
+
+        function tabComplete(inputEl, availableFiles, availableCd) {
+            var val = inputEl.value, parts = val.split(/\s+/), cmd = parts[0].toLowerCase();
+            if (parts.length === 1 && !val.endsWith(' ')) {
+                var m = COMMANDS.filter(function(c){ return c.startsWith(cmd); });
+                if (m.length === 1) { inputEl.value = m[0] + ' '; return; }
+                return;
+            }
+            var partial = parts.slice(1).join(' ');
+            if (cmd === 'cat') {
+                var m = availableFiles.filter(function(f){ return f.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cat ' + m[0];
+            } else if (cmd === 'cd') {
+                var m = availableCd.filter(function(d){ return d.startsWith(partial); });
+                if (m.length === 1) inputEl.value = 'cd ' + m[0];
+            } else if (cmd === 'ls') {
+                var flags = ['-l', '-la'], idx = flags.indexOf(partial);
+                inputEl.value = 'ls ' + flags[(idx + 1) % flags.length];
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') { e.preventDefault(); tabComplete(input, FILES, CD_MAIN); }
+        });
+
+        function doLs(args) {
+            var fc = args.join('').replace(/-/g,'').toLowerCase();
+            var wantsLong = fc.indexOf('l') !== -1, wantsAll = fc.indexOf('a') !== -1;
+            var files = [
+                { name: 'introduction.txt',  desc: 'file types and why they matter' },
+                { name: 'permissions.txt',   desc: 'chmod, chown, and reading permission strings' },
+                { name: 'permissions2.txt',  desc: 'suid, sgid, sticky bit, and dangerous executables' },
+                { name: 'commands.txt',      desc: 'searching and auditing' }
+            ];
+            if (wantsLong) {
+                addLine('total ' + files.length, 'log-line--info');
+                files.forEach(function(f) {
+                    var p = document.createElement('p'); p.className = 'log-line log-line--dir';
+                    var perm = document.createElement('span'); perm.className = 'dir-perm'; perm.textContent = '-rw-r--r--';
+                    var name = document.createElement('span'); name.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread'); name.textContent = f.name;
+                    var desc = document.createElement('span'); desc.className = 'dir-desc'; desc.textContent = f.desc;
+                    p.appendChild(perm); p.appendChild(name); p.appendChild(desc); log.appendChild(p);
+                });
+            } else {
+                var row = document.createElement('p'); row.className = 'log-line log-line--ls';
+                files.forEach(function(f) {
+                    var span = document.createElement('span');
+                    span.className = 'dir-name ' + (read[f.name] ? 'file-read' : 'file-unread');
+                    span.textContent = f.name; row.appendChild(span);
+                });
+                log.appendChild(row);
+            }
+            if (wantsLong && wantsAll) addLine('# ls -la shows permission strings — useful on this module!', 'log-line--easter');
+            updatePlaceholder();
+        }
+
+        // ── cat functions ──────────────────────────────────────────
+
+        function catIntroduction() {
+            addBlank();
+            var anchor = addLine('─── introduction.txt ─────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('FILES ON LINUX', 'log-line--heading');
+            addBlank();
+            addLine('on linux, almost everything is a file — devices, processes, sockets, and configs', 'log-line--body');
+            addLine('all live as files somewhere in the filesystem. understanding what you are looking', 'log-line--body');
+            addLine('at is the first step to knowing whether it belongs there.', 'log-line--body');
+            addBlank();
+            addLine('COMMON FILE TYPES', 'log-line--heading');
+            addBlank();
+            addLine('text files (.txt, .log, .conf, .cfg, .ini)', 'log-line--body');
+            addLine('  — human-readable, store settings, logs, and data', 'log-line--indent');
+            addLine('  — dangerous if they contain hardcoded passwords or private keys', 'log-line--indent');
+            addLine('  — example: /etc/passwd, /etc/ssh/sshd_config, ~/.bash_history', 'log-line--indent');
+            addBlank();
+            addLine('config files (.conf, .cfg, .ini, .yaml, .json, .xml)', 'log-line--body');
+            addLine('  — control how applications and services behave', 'log-line--indent');
+            addLine('  — misconfigured files are one of the top attack vectors', 'log-line--indent');
+            addLine('  — live mostly in /etc/ and application home directories', 'log-line--indent');
+            addBlank();
+            addLine('shell scripts (.sh, .bash)', 'log-line--body');
+            addLine('  — scripts that run shell commands, often automated via cron', 'log-line--indent');
+            addLine('  — if world-writable, an attacker can inject commands, running them as an admin', 'log-line--indent');
+            addLine('  — to check for these, run:', 'log-line--indent');
+            addLine('$   find / -name "*.sh" -perm -o+w 2>/dev/null', 'log-line--cmd-example');
+            addLine(' you can switch out the .sh for other extensions as well.', 'log-line--indent');
+            addBlank();
+            addLine('binary/executable files (no extension, or .elf)', 'log-line--body');
+            addLine('  — compiled programs that run directly', 'log-line--indent');
+            addLine('  — a malicious binary can often be dropped in /tmp or /dev/shm', 'log-line--indent');
+            addLine('  — SUID binaries run as their owner (often root) regardless of who runs them', 'log-line--indent');
+            addBlank();
+            addLine('shared libraries (.so)', 'log-line--body');
+            addLine('  — code shared between programs, loaded at runtime', 'log-line--indent');
+            addLine('  — a malicious .so injected via LD_PRELOAD can hijack any program', 'log-line--indent');
+            addLine(' remember to check /etc/ld.so.preload for unexpected entries!', 'log-line--indent');
+            addBlank();
+            addLine('media files (.mp3, .mp4, .jpg, .png)', 'log-line--body');
+            addLine('  — generally harmless, but always remove these in competition!', 'log-line--indent');
+            addLine('  — often found in home directories', 'log-line--indent');
+            addBlank();
+            addLine('hidden files (anything starting with a dot)', 'log-line--body');
+            addLine('  — not shown by plain ls — only visible with ls -la', 'log-line--indent');
+            addLine('  — remember to always use ls -la to spot strange hidden files!', 'log-line--indent');
+            addBlank();
+            addLine('KEY DIRECTORIES TO KNOW', 'log-line--heading');
+            addBlank();
+            addLine('  /etc/         — system-wide config files (passwd, shadow, ssh, pam, cron)', 'log-line--cmd-example');
+            addLine('  /var/log/     — system and application logs', 'log-line--cmd-example');
+            addLine('  /tmp/         — temporary files, world-writable, cleared on reboot', 'log-line--cmd-example');
+            addLine('  /dev/shm/     — shared memory filesystem, also world-writable', 'log-line--cmd-example');
+            addLine('  /home/        — user home directories', 'log-line--cmd-example');
+            addLine('  /root/        — root\'s home directory', 'log-line--cmd-example');
+            addLine('  /usr/bin/     — standard user programs', 'log-line--cmd-example');
+            addLine('  /usr/local/   — locally installed software', 'log-line--cmd-example');
+            addLine('  /opt/         — optional/third-party software', 'log-line--cmd-example');
+            addLine('  /proc/        — virtual filesystem exposing running process info', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catPermissions() {
+            addBlank();
+            var anchor = addLine('─── permissions.txt ──────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('READING PERMISSION STRINGS', 'log-line--heading');
+            addBlank();
+            addLine('every file and directory has a permission string visible in ls -la output:', 'log-line--body');
+            addLine('  -rwxr-xr--  1  root  root  4096  jan 1  file.sh', 'log-line--cmd-example');
+            addBlank();
+            addLine('the permission string has 10 characters:', 'log-line--body');
+            addLine('  position 1:    file type  (- = file, d = directory, l = symlink)', 'log-line--indent');
+            addLine('  positions 2-4: owner permissions  (r = read, w = write, x = execute)', 'log-line--indent');
+            addLine('  positions 5-7: group permissions', 'log-line--indent');
+            addLine('  positions 8-10: other (everyone else) permissions', 'log-line--indent');
+            addBlank();
+            addLine('example breakdown:  -rwxr-xr--', 'log-line--body');
+            addLine('  -   = regular file', 'log-line--indent');
+            addLine('  rwx = owner can read, write, and execute', 'log-line--indent');
+            addLine('  r-x = group can read and execute, but not write', 'log-line--indent');
+            addLine('  r-- = everyone else can only read', 'log-line--indent');
+            addBlank();
+            addLine('OCTAL NOTATION', 'log-line--heading');
+            addBlank();
+            addLine('permissions can also be expressed as a 3-digit number:', 'log-line--body');
+            addLine('  r = 4,  w = 2,  x = 1  — add them up for each group', 'log-line--indent');
+            addLine('  rwx = 4+2+1 = 7', 'log-line--indent');
+            addLine('  r-x = 4+0+1 = 5', 'log-line--indent');
+            addLine('  r-- = 4+0+0 = 4', 'log-line--indent');
+            addLine('  so -rwxr-xr-- = 754', 'log-line--indent');
+            addBlank();
+            addLine('common permission values:', 'log-line--body');
+            addLine('  755  — owner full, group+others read/execute  (typical for executables)', 'log-line--cmd-example');
+            addLine('  644  — owner read/write, group+others read only  (typical for config files)', 'log-line--cmd-example');
+            addLine('  600  — owner read/write only, nobody else  (private keys, shadow)', 'log-line--cmd-example');
+            addLine('  700  — owner full, nobody else  (private directories)', 'log-line--cmd-example');
+            addLine('  777  — everyone full access  (dangerous)', 'log-line--cmd-example');
+            addBlank();
+            addLine('CHMOD — CHANGING PERMISSIONS', 'log-line--heading');
+            addBlank();
+            addLine('$ chmod 644 file.txt          # set exact permissions with octal', 'log-line--cmd-example');
+            addLine('$ chmod u+x script.sh         # add execute for the owner (u)', 'log-line--cmd-example');
+            addLine('$ chmod o-w file.txt          # remove write from others (o)', 'log-line--cmd-example');
+            addLine('$ chmod g=r file.txt          # set group to read-only exactly', 'log-line--cmd-example');
+            addLine('$ chmod -R 755 directory/     # apply recursively to a directory (everything inside)', 'log-line--cmd-example');
+            addBlank();
+            addLine('  u = user/owner,  g = group,  o = others,  a = all three', 'log-line--indent');
+            addLine('  + = add permission,  - = remove,  = = set exactly', 'log-line--indent');
+            addBlank();
+            addLine('CHOWN — CHANGING OWNERSHIP', 'log-line--heading');
+            addBlank();
+            addLine('$ sudo chown root file.txt          # change owner to root', 'log-line--cmd-example');
+            addLine('$ sudo chown root:root file.txt     # change owner AND group', 'log-line--cmd-example');
+            addLine('$ sudo chown -R user:group dir/     # apply recursively', 'log-line--cmd-example');
+            addBlank();
+            addLine('IMPORTANT PERMISSIONS TO KNOW', 'log-line--heading');
+            addBlank();
+            addLine('  /etc/passwd      644   root:root   (world-readable, not writable)', 'log-line--cmd-example');
+            addLine('  /etc/shadow      640   root:shadow (root read/write, shadow group read)', 'log-line--cmd-example');
+            addLine('  /etc/sudoers     440   root:root   (read-only even for root, use visudo)', 'log-line--cmd-example');
+            addLine('  /etc/ssh/sshd_config  600  root:root  (only root should read/write)', 'log-line--cmd-example');
+            addLine('  ~/.ssh/          700   user:user   (private directory)', 'log-line--cmd-example');
+            addLine('  ~/.ssh/authorized_keys  600  user:user', 'log-line--cmd-example');
+            addLine('  /etc/            755   root:root   (world-readable dirs are normal here)', 'log-line--cmd-example');
+            addLine('  /tmp/            1777  root:root   (world-writable, sticky bit set)', 'log-line--cmd-example');
+            addBlank();
+            addLine('if any of these are wrong, fix them with chmod/chown. mismatched permissions', 'log-line--body');
+            addLine('on sensitive files are a common competition finding.', 'log-line--body');
+            addLine('you can automate the process by pasting in the correct chmod commands.', 'log-line--body');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catPermissions2() {
+            addBlank();
+            var anchor = addLine('─── permissions2.txt ─────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('SPECIAL PERMISSION BITS', 'log-line--heading');
+            addBlank();
+            addLine('beyond rwx, linux has three special permission bits worth knowing:', 'log-line--body');
+            addBlank();
+            addLine('SUID — Set User ID  (octal 4000)', 'log-line--heading');
+            addBlank();
+            addLine('when set on an executable, it runs as the file\'s OWNER, not the user who ran it.', 'log-line--body');
+            addLine('if the owner is root, that means ANY user running the file gets root privileges', 'log-line--body');
+            addLine('for the duration of that program\'s execution.', 'log-line--body');
+            addBlank();
+            addLine('it shows up in ls -la as an s in the owner execute position:', 'log-line--body');
+            addLine('  -rwsr-xr-x  root  root  /usr/bin/passwd', 'log-line--cmd-example');
+            addLine('  the s where x was = SUID is set', 'log-line--indent');
+            addLine('  a capital S means SUID is set but execute is NOT — almost always a mistake', 'log-line--indent');
+            addBlank();
+            addLine('legitimate SUID binaries (these should exist):', 'log-line--body');
+            addLine('  /usr/bin/passwd    — needs root to write to /etc/shadow', 'log-line--indent');
+            addLine('  /usr/bin/sudo      — needs root to run commands as root', 'log-line--indent');
+            addLine('  /usr/bin/su        — needs root to switch users', 'log-line--indent');
+            addLine('  /usr/bin/mount     — needs root to mount filesystems', 'log-line--indent');
+            addBlank();
+            addLine('dangerous SUID binaries (these should NOT have SUID):', 'log-line--body');
+            addLine('  bash, sh, python, perl, vim, nano, find, cp, mv, cat, less, more', 'log-line--indent');
+            addLine('  many of these can be abused to gain elevated privileges if marked SUID.', 'log-line--indent');
+            addBlank();
+            addLine('how to find all SUID files:', 'log-line--body');
+            addLine('$ find / -perm -4000 -type f 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('how to remove SUID from a file:', 'log-line--body');
+            addLine('$ sudo chmod u-s /path/to/file', 'log-line--cmd-example');
+            addBlank();
+            addLine('SGID — Set Group ID  (octal 2000)', 'log-line--heading');
+            addBlank();
+            addLine('similar to SUID, but for groups. files created inside an SGID directory', 'log-line--body');
+            addLine('inherit the directory\'s group, not the creating user\'s group.', 'log-line--body');
+            addLine('on executables, it runs as the file\'s group.', 'log-line--body');
+            addBlank();
+            addLine('shows up as s in the group execute position:', 'log-line--body');
+            addLine('  -rwxr-sr-x  root  shadow  /usr/sbin/unix_chkpwd', 'log-line--cmd-example');
+            addBlank();
+            addLine('how to find all SGID files:', 'log-line--body');
+            addLine('$ find / -perm -2000 -type f 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('STICKY BIT  (octal 1000)', 'log-line--heading');
+            addBlank();
+            addLine('when set on a directory, only the file\'s owner (or root) can delete or rename', 'log-line--body');
+            addLine('files inside it, even if the directory is world-writable.', 'log-line--body');
+            addBlank();
+            addLine('shows up as t in the others execute position:', 'log-line--body');
+            addLine('  drwxrwxrwt  root  root  /tmp', 'log-line--cmd-example');
+            addLine('  /tmp is the classic example — world-writable but sticky', 'log-line--indent');
+            addLine('  without the sticky bit, any user could delete other users\' files in /tmp', 'log-line--indent');
+            addBlank();
+            addLine('WORLD-WRITABLE FILES', 'log-line--heading');
+            addBlank();
+            addLine('a world-writable file can be modified by ANY user on the system.', 'log-line--body');
+            addLine('this is almost never intentional outside of /tmp and /dev/shm.', 'log-line--body');
+            addBlank();
+            addLine('why it\'s dangerous:', 'log-line--body');
+            addLine('  — a world-writable script run by root = any user can inject commands', 'log-line--indent');
+            addLine('  — a world-writable config file = any user can change app behavior', 'log-line--indent');
+            addLine('  — world-writable /etc/passwd = any user can add a root account', 'log-line--indent');
+            addBlank();
+            addLine('how to find world-writable files (excluding /proc and /sys):', 'log-line--body');
+            addLine('$ find / -perm -o+w -not -path "/proc/*" -not -path "/sys/*" 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('how to fix a world-writable file:', 'log-line--body');
+            addLine('$ sudo chmod o-w /path/to/file', 'log-line--cmd-example');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function catCommands() {
+            addBlank();
+            var anchor = addLine('─── commands.txt ─────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('FILESYSTEM COMMANDS AND TOOLS', 'log-line--heading');
+            addBlank();
+            addLine('TREE — visualize directory structure', 'log-line--heading');
+            addBlank();
+            addLine('$ tree                          # show current directory as a tree', 'log-line--cmd-example');
+            addLine('$ tree /etc                     # show /etc as a tree', 'log-line--cmd-example');
+            addLine('$ tree -a                       # include hidden files', 'log-line--cmd-example');
+            addLine('$ sudo apt install tree         # install tree if not present', 'log-line--cmd-example');
+            addBlank();
+            addLine('FIND — search for files by any attribute', 'log-line--heading');
+            addBlank();
+            addLine('basic syntax:  find [where] [what] [action]', 'log-line--body');
+            addLine('$ find / -name "filename"       # find by exact name', 'log-line--cmd-example');
+            addLine('$ find / -name "*.sh"           # find by pattern (all shell scripts)', 'log-line--cmd-example');
+            addLine('$ find /home -name "*.mp3"      # find mp3 files in /home', 'log-line--cmd-example');
+            addLine('$ find / -name "*.mp3" -o -name "*.mp4" 2>/dev/null   # mp3 OR mp4', 'log-line--cmd-example');
+            addBlank();
+            addLine('find by permissions:', 'log-line--body');
+            addLine('$ find / -perm -4000 2>/dev/null               # all SUID files', 'log-line--cmd-example');
+            addLine('$ find / -perm -2000 2>/dev/null               # all SGID files', 'log-line--cmd-example');
+            addLine('$ find / -perm -o+w 2>/dev/null                # world-writable files', 'log-line--cmd-example');
+            addLine('$ find / -perm 777 2>/dev/null                 # exactly 777', 'log-line--cmd-example');
+            addBlank();
+            addLine('find by owner:', 'log-line--body');
+            addLine('$ find / -user root 2>/dev/null                # files owned by root', 'log-line--cmd-example');
+            addLine('$ find / -nouser 2>/dev/null                   # files with no valid owner (suspicious)', 'log-line--cmd-example');
+            addBlank();
+            addLine('find by size:', 'log-line--body');
+            addLine('$ find / -size +100M 2>/dev/null               # files larger than 100MB', 'log-line--cmd-example');
+            addLine('$ find / -size +1M -name "*.txt" 2>/dev/null   # large text files', 'log-line--cmd-example');
+            addLine('  size units: c=bytes, k=kilobytes, M=megabytes, G=gigabytes', 'log-line--indent');
+            addLine('  + means greater than, - means less than, no sign means exactly', 'log-line--indent');
+            addBlank();
+            addLine('find by time (useful for spotting recently changed files):', 'log-line--body');
+            addLine('$ find / -mmin -60 2>/dev/null                 # modified in last 60 minutes', 'log-line--cmd-example');
+            addLine('$ find / -mtime -1 2>/dev/null                 # modified in last 24 hours', 'log-line--cmd-example');
+            addLine('$ find /etc -mtime -7 2>/dev/null              # config files changed in last week', 'log-line--cmd-example');
+            addBlank();
+            addLine('find by type:', 'log-line--body');
+            addLine('$ find / -type f 2>/dev/null                   # regular files only', 'log-line--cmd-example');
+            addLine('$ find / -type d 2>/dev/null                   # directories only', 'log-line--cmd-example');
+            addLine('$ find / -type l 2>/dev/null                   # symlinks only', 'log-line--cmd-example');
+            addBlank();
+            addLine('GREP — search inside file contents', 'log-line--heading');
+            addBlank();
+            addLine('$ grep "password" /etc/ssh/sshd_config         # find a word in one file', 'log-line--cmd-example');
+            addLine('$ grep -i "password" file.txt                  # case-insensitive', 'log-line--cmd-example');
+            addLine('$ grep -r "password" /etc/                     # search recursively in /etc', 'log-line--cmd-example');
+            addLine('$ grep -rn "password" /etc/                    # same, with line numbers', 'log-line--cmd-example');
+            addLine('$ grep -rl "password" /etc/                    # just print filenames, not lines', 'log-line--cmd-example');
+            addLine('$ grep -v "^#" /etc/ssh/sshd_config            # skip comment lines (lines starting with #)', 'log-line--cmd-example');
+            addLine('$ grep "PASS" /etc/login.defs                  # find password policy settings', 'log-line--cmd-example');
+            addBlank();
+            addLine('useful grep for competition:', 'log-line--body');
+            addLine('$ grep -rn "password" /home/ 2>/dev/null       # plaintext passwords in home dirs', 'log-line--cmd-example');
+            addLine('$ grep -rn "password" /var/www/ 2>/dev/null    # passwords in web files', 'log-line--cmd-example');
+            addLine('$ grep -r "NOPASSWD" /etc/sudoers*             # dangerous sudo rules', 'log-line--cmd-example');
+            addBlank();
+            addLine('OTHER USEFUL COMMANDS', 'log-line--heading');
+            addBlank();
+            addLine('file — identify what type a file actually is (ignores extension)', 'log-line--body');
+            addLine('$ file <file>               # see filetype', 'log-line--cmd-example');
+            addLine('$ file *                    # identify everything in current directory', 'log-line--cmd-example');
+            addBlank();
+            addLine('stat — detailed info about a file (size, times, permissions, inode)', 'log-line--body');
+            addLine('$ stat filename', 'log-line--cmd-example');
+            addBlank();
+            addLine('du — disk usage, useful for finding unexpectedly large files', 'log-line--body');
+            addLine('$ du -sh *                       # size of everything in current dir', 'log-line--cmd-example');
+            addLine('$ du -sh /* 2>/dev/null          # size of top-level dirs', 'log-line--cmd-example');
+            addLine('$ du -ah / 2>/dev/null | sort -rh | head -20   # 20 largest files on system', 'log-line--cmd-example');
+            addBlank();
+            addLine('lsof — list open files (which process has which file open)', 'log-line--body');
+            addLine('$ sudo lsof -u username          # files open by a specific user', 'log-line--cmd-example');
+            addLine('$ sudo lsof /etc/passwd          # who has /etc/passwd open right now', 'log-line--cmd-example');
+            addBlank();
+            addLine('CHEAT SHEET', 'log-line--heading');
+            addBlank();
+            addLine('find all media files (mp3, mp4, avi, jpg, png, etc.):', 'log-line--body');
+            addLine('$ find / -type f -regextype posix-extended -regex ".*\\.(mp3|mp4|avi|mkv|mov|jpg|jpeg|png|gif|bmp)" 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('find world-writable files (not in /proc or /sys):', 'log-line--body');
+            addLine('$ find / -perm -o+w -not -path "/proc/*" -not -path "/sys/*" 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('find all SUID binaries:', 'log-line--body');
+            addLine('$ find / -perm -4000 -type f 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('find files larger than 50MB:', 'log-line--body');
+            addLine('$ find / -size +50M -type f 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('find files modified in the last hour:', 'log-line--body');
+            addLine('$ find / -mmin -60 -type f 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('find files with no owner:', 'log-line--body');
+            addLine('$ find / -nouser -o -nogroup 2>/dev/null', 'log-line--cmd-example');
+            addBlank();
+            addLine('  note: 2>/dev/null suppresses "permission denied" errors so output stays clean', 'log-line--indent');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            return anchor;
+        }
+
+        function doCat(target) {
+            var anchor;
+            if      (target === 'introduction.txt')  { anchor = catIntroduction();  read['introduction.txt']  = true; }
+            else if (target === 'permissions.txt')   { anchor = catPermissions();   read['permissions.txt']   = true; }
+            else if (target === 'permissions2.txt')  { anchor = catPermissions2();  read['permissions2.txt']  = true; }
+            else if (target === 'commands.txt')      { anchor = catCommands();      read['commands.txt']      = true; }
+            else {
+                addLine('cat: ' + target + ': No such file or directory', 'log-line--error');
+                return;
+            }
+            updatePlaceholder();
+            if (anchor) scrollToEl(anchor);
+            if (FILES.every(function(f){ return read[f]; })) {
+                inputRow.style.display = 'none';
+                hint.style.display = 'flex';
+                document.getElementById('nav-input').focus();
+            }
+        }
+
+        function handleCmd(raw, isNav) {
+            addLine(PROMPT + raw, 'log-line--cmd');
+            var anchorIndex = log.children.length;
+            var parts = raw.split(/\s+/), cmd = parts[0].toLowerCase(), args = parts.slice(1);
+
+            if (cmd === 'ls') {
+                doLs(args);
+            } else if (cmd === 'cat') {
+                if (!args[0]) addLine('cat: missing operand', 'log-line--error');
+                else doCat(args[0].toLowerCase());
+            } else if (cmd === 'cd') {
+                var target = args.join('');
+                if (isNav) {
+                    var routes = {
+                        '..': 'index.html', '~': 'index.html', '/home': 'index.html',
+                        '../basics':     'basics.html',
+                        '../passwords':  'passwords.html',
+                        '../users':      'users.html',
+                        '../ssh':        'ssh.html',
+                        '../services':   'pas.html',
+                        '../backdoors':  'backdoors.html'
+                    };
+                    if (routes[target]) {
+                        addLine('leaving files/ ...', 'log-line--info');
+                        document.getElementById('nav-input').disabled = true;
+                        setTimeout(function(){ window.location.href = routes[target]; }, 400);
+                    } else {
+                        addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                    }
+                } else {
+                    if (!target || target === '..' || target === '~' || target === '/home') {
+                        window.location.href = 'index.html';
+                    } else {
+                        addLine('bash: cd: ' + target + ': No such file or directory', 'log-line--error');
+                    }
+                }
+            } else if (cmd === 'pwd') {
+                addLine('/home/frhs/files', 'log-line--info');
+            } else {
+                addLine('bash: ' + cmd + ': command not found', 'log-line--error');
+            }
+
+            var anchor = log.children[anchorIndex];
+            if (anchor) scrollToEl(anchor);
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            var raw = input.value.trim(); if (!raw) return;
+            input.value = ''; handleCmd(raw, false);
+        });
+
+        var navInput = document.getElementById('nav-input');
+        navInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') { e.preventDefault(); tabComplete(navInput, FILES, CD_NAV); return; }
+            if (e.key !== 'Enter') return;
+            var raw = navInput.value.trim(); if (!raw) return;
+            navInput.value = ''; handleCmd(raw, true);
+        });
+
+        input.focus();
+    })();
+    </script>
+</body>
+</html>
