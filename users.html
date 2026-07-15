@@ -84,6 +84,7 @@
 
         var read = {
             'introduction.txt': false,
+            'passwd': false,
             'root.txt':   false,
             'regular.txt':      false,
             'system.txt':   false,
@@ -164,6 +165,7 @@
 
             var files = [
                 { name: 'introduction.txt', desc: 'an introduction to users and group management' },
+                { name: 'passwd', desc: '/etc/passwd - essential user info'},
                 { name: 'root.txt',   desc: 'understanding the superuser' },
                 { name: 'regular.txt',      desc: 'understanding regular user accounts' },
                 { name: 'system.txt',      desc: 'understanding system users' },
@@ -252,6 +254,33 @@
             return anchor;
         }
 
+        function catPasswd() {
+            addBlank();
+            var anchor = addLine('─── passwd ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            addLine('/etc/passwd', 'log-line--heading');
+            addBlank();
+            addLine('the passwd file contains a list of all users on the system, both regular and system users', 'log-line--body');
+            addLine('this file is readable by all, but only writable by root or administrators', 'log-line--body');
+            addLine('each line follows the following format:', 'log-line--body');
+            addLine('    username:x:uid:gid:description:home directory:default login shell', 'log-line--cmd-example');
+            addLine('a real example:', 'log-line--body');
+            addLine('    frhs:x:1000:1000:,,,:/home/frhs:/bin/bash', 'log-line--cmd-example');
+            addLine('  field 1 — username (frhs)', 'log-line--indent');
+            addLine('  field 2 — x - password is stored in /etc/shadow');
+            addLine('  field 3 — user ID', 'log-line--indent');
+            addLine('  field 4 — group ID', 'log-line--indent');
+            addLine('  field 5 — description (name, room number, telephone)', 'log-line--indent');
+            addLine('  field 6 — home directory', 'log-line--indent');            
+            addLine('  field 7 — default login shell', 'log-line--indent');
+            addLine('login shells allows you to login and interact with your system.', 'log-line--body');
+            addBlank();
+            addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
+            addBlank();
+            
+            return anchor;
+        }
+
         function catRegular() {
             addBlank();
             var anchor = addLine('─── regular.txt ──────────────────────────────────────', 'log-line--divider');
@@ -284,7 +313,8 @@
             addLine('these users are necessary for the system\'s and services\' functionality.', 'log-line--body');
             addLine('they exists so that background processes (daemons) can run with their own permissions', 'log-line--body');
             addLine('system users can be viewed in the /etc/passwd file.', 'log-line--body');
-            addLine('they typically have a UID of 1 - 999', 'log-line--body');
+            addLine('they typically have a UID of 1 - 999.', 'log-line--body');
+            addLine('since they are unable to login, they do not have a home directory', 'log-line--body');
             addBlank();
             addLine('here are some of the common system users and their functionality:', 'log-line--body');
             addLine('  www-data                    # used by web servers', 'log-line--cmd-example');
@@ -293,8 +323,19 @@
             addLine('  mail                        # used for mail related services', 'log-line--cmd-example');
             addBlank();
             addLine('unlike regular users, system users cannot login and interact with the system', 'log-line--body');
+            addLine('this is because they have a non-loginable shell', 'log-line--body');
+            addLine('  /usr/sbin/nologin or /bin/false are common examples', 'log-line--cmd-example');
             addLine('therefore it is a good security benchmark to make sure they cannot login', 'log-line--body');
             addLine('like regular users, they cannot change important system settings', 'log-line--body');
+            addBlank();
+            addLine('HIDDEN USERS', 'log-line--heading');
+            addBlank();
+            addLine('there may be some anomalies that may cause a regular user to become hidden like a system user', 'log-line--body');
+            addLine('meaning that they have no home directory to detect their presence.', 'log-line--body');
+            addLine('hidden users tend to have a UID of 1 - 999 like system users', 'log-line--body');
+            addLine('unlike system users however, they have a loginable shell like /bin/bash');
+            addLine('here is an example: ', 'log-line--body');
+            addLine('  user:x:42:42:user:/tmp:/bin/bash', 'log-line--cmd-example');
             addBlank();
             addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
             addBlank();
@@ -312,8 +353,8 @@
             addLine('as admin, you can make important changes in the system.', 'log-line--body');
             addLine('as admin, you can do things like add/delete users, update the system, remove malware, etc.', 'log-line--body');
             addLine('in order to use these privileges, you must add the sudo command before every command you execute', 'log-line--body');
-            addLine('  nano /etc/passwd            # editing an important system file, forbidden to regular users', 'log-line--cmd-example');
-            addLine('  sudo nano /etc/passwd       # the sudo command runs this command as root', 'log-line--cmd-example');
+            addLine('  nano /etc/passwd            # editing an important system file, forbidden to regular users (read-only)', 'log-line--cmd-example');
+            addLine('  sudo nano /etc/passwd       # the sudo command runs this command as root, allowing modifications', 'log-line--cmd-example');
             addBlank();
             addLine('this means that it is the admin\'s duty to secure the system.', 'log-line--body');
             addLine('admins must enter a password before running commands as root for security purposes. ', 'log-line--body');
@@ -322,8 +363,25 @@
             addLine('make sure the sudo group contains the right users', 'log-line--body');
             addLine('more advanced admin management lies in the /etc/sudoers file', 'log-line--body');
             addLine('use the sudo visudo command to modify this file if needed', 'log-line--body');
-            addLine('  Defaults !authenticate       # this setting allows anyone to run commands as root', 'log-line--cmd-example');
-            addLine('  user ALL=(ALL) NOPASSWD: ALL # this allows that user to run as root without a password', 'log-line--cmd-example');
+            addLine('  Defaults !authenticate       # allows anyone to run commands as root', 'log-line--cmd-example');
+            addLine('  user ALL=(ALL) NOPASSWD: ALL # allows that user to run as root without a password', 'log-line--cmd-example');
+            addBlank();
+            addLine('SYSTEM USER SECURITY', 'log-line--heading');
+            addLine('since admins can act as root, here are the things they should do to secure the system', 'log-line--body');
+            addLine('  $  sudo deluser user         # removes a user from the system', 'log-line--cmd-example');
+            addLine('  $  sudo adduser user         # adds a user to the system', 'log-line--cmd-example');
+            addLine('  $  sudo deluser user group   # removes a user from a group', 'log-line--cmd-example');
+            addBlank();
+            addLine('USER SUBSTITUTION', 'log-line--heading');
+            addBlank();
+            addLine('tired of typing the sudo command before everything?', 'log-line--body');
+            addLine('  $  sudo su                   # lets you log in as root itself', 'log-line--cmd-example');
+            addLine('only administrators will have this privilege', 'log-line--body');
+            addLine('this will come in handy if you must do a lot of changes or type lots of commands', 'log-line--body');
+            addLine('this method can be dangerous however', 'log-line--cmd-example');
+            addLine('this removes the normal human error checks when you type in commands', 'log-line--body');
+            addLine('if you abandon the terminal leaving the terminal and system on,', 'log-line--body');
+            addLine('anyone with physical or remote access to the computer inherits full admin powers', 'log-line--body');
             addBlank();
             addLine('─── end of file ──────────────────────────────────────', 'log-line--divider');
             addBlank();
@@ -337,6 +395,12 @@
             addLine('USER GROUP MANAGEMENT', 'log-line--heading');
             addBlank();
             addLine('groups in linux gives regular users certain permissions.', 'log-line--body');
+            addLine('all group info is stored in /etc/group', 'log-line--body');
+            addLine('each line follows this format:', 'log-line--body');
+            addLine('  group name:x:gid:group members', 'log-line--cmd-example');
+            addLine('the x again represents a password, stored in /etc/gshadow', 'log-line--body');
+            addLine('there is rarely a password for groups nowadays', 'log-line--body');
+            addBlank();
             addLine('as mentioned before, the sudo or adm group allows regular users to become root.', 'log-line--body');
             addLine('here are other groups that gives users certain permissions:', 'log-line--body');
             addLine('  audio                       # allows users to access audio devices', 'log-line--cmd-example');
@@ -375,6 +439,9 @@
             } else if (target === 'groups.txt') {
                 anchor = catGroups();
                 read['groups.txt'] = true;
+            } else if (target === 'passwd') {
+                anchor = catPasswd();
+                read['passwd'] = true;
             } else {
                 addLine('cat: ' + target + ': No such file or directory', 'log-line--error');
                 return;
