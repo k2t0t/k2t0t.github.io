@@ -140,10 +140,6 @@
             } else if (cmd === 'cd') {
                 var m = availableCd.filter(function(d){ return d.startsWith(partial); });
                 if (m.length === 1) inputEl.value = 'cd ' + m[0];
-            } else if (cmd === 'ls') {
-                var flags = ['-l', '-la'];
-                var idx = flags.indexOf(partial);
-                inputEl.value = 'ls ' + flags[(idx + 1) % flags.length];
             }
         }
 

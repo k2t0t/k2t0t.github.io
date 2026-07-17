@@ -47,6 +47,14 @@
             var input = document.getElementById('cmd-input');
             var log = document.getElementById('terminal-log');
 
+            // Re-enable the terminal when returning via the browser's Back button
+            window.addEventListener("pageshow", function (e) {
+                if (e.persisted) {
+                    input.disabled = false;
+                    input.focus();
+                }
+            });
+
             var dirs = [
                 { name: 'basics',    href: 'basics.html',    desc: 'Essential commands and navigation fundamentals' },
                 { name: 'passwords', href: 'passwords.html', desc: 'Password policy, hashing, and storage' },
@@ -131,10 +139,6 @@
                     } else if (cmd === 'cd') {
                         var m = DIR_NAMES.filter(function(d){ return d.startsWith(partial); });
                         if (m.length === 1) input.value = 'cd ' + m[0];
-                    } else if (cmd === 'ls') {
-                        var flags = ['-l', '-la'];
-                        var idx = flags.indexOf(partial);
-                        input.value = 'ls ' + flags[(idx + 1) % flags.length];
                     }
                     return;
                 }
