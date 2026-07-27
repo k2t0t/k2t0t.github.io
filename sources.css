@@ -135,8 +135,6 @@ h2, .lede {
   font-family: var(--font-mono);
   font-size: 0.92rem;
   line-height: 1.7;
-  max-height: 420px;
-  overflow-y: auto;
   background: var(--bg-row);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
